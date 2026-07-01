@@ -190,7 +190,7 @@ export default function ContentGenerator() {
         status: "review",
       });
       toast.success("Content zur Freigabe markiert");
-      navigate("/archive");
+      navigate("/approvals");
     } catch { toast.error("Speichern fehlgeschlagen"); } finally { setSaving(false); }
   };
 

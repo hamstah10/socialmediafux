@@ -111,7 +111,7 @@ Zwei Buttons oben helfen beim Einstieg:
 - **"Hashtags neu"** generiert neue Hashtag-Vorschläge.
 - **"Compliance prüfen"** prüft auf riskante Aussagen (z.B. "100% legal", "TÜV garantiert").
 - **"Sicherer formulieren"** lässt Claude riskante Formulierungen automatisch entschärfen.
-- **"Speichern & zur Freigabe"** speichert den Content mit Status `review` und springt ins Archiv.
+- **"Speichern & zur Freigabe"** speichert den Content mit Status `review` und springt zur Freigabe-Ansicht.
 
 ---
 
@@ -125,7 +125,7 @@ Für viele News-Items auf einmal: erzeugt automatisch Text **und** Creative pro 
 4. Rechts die gewünschten News-Items ankreuzen ("Alle" / "Keine" zur Schnellauswahl).
 5. **"{N} Posts generieren"** klicken.
 
-Ergebnis zeigt Anzahl erstellter Creatives (und ggf. Fehler); Link führt direkt ins Archiv.
+Ergebnis zeigt Anzahl erstellter Creatives (und ggf. Fehler); Link führt direkt zur Freigabe-Ansicht.
 
 Wichtig: Das Layout-Template muss "Slot-Rollen" (z.B. `headline`, `image_slot`) haben, damit der Text/Bild automatisch eingesetzt wird — sonst bleibt das Layout statisch (Warnhinweis erscheint im UI).
 
@@ -171,21 +171,21 @@ Mehrere Layer lassen sich zu einer Gruppe zusammenfassen (**"+ Neue Gruppe"**) u
 
 ### Speichern
 - **"Speichern als…"** legt das aktuelle Layout als **Layout-Template** an (wählbar: nur für diesen Kunden oder global für alle Kunden) — das ist die Vorlage, die im Bulk-Generator auswählbar wird.
-- **"Speichern"** (unten) speichert die aktuelle Komposition direkt als einzelnes **Creative** im Archiv.
+- **"Speichern"** (unten) speichert die aktuelle Komposition direkt als einzelnes **Creative** (springt danach zurück zu Vorlagen).
 
 ---
 
-## 9. Freigabe-Workflow & Archiv (`/archive`)
+## 9. Freigabe-Workflow (`/approvals`)
 
-Zentrale Übersicht aller generierten Texte mit Status-Workflow.
+Übersicht aller Inhalte, die noch aktiv im Freigabe-Prozess sind: Status `draft`, `review`, `approved`, `scheduled`. Sobald ein Post veröffentlicht oder archiviert wird, verschwindet er von hier und taucht stattdessen im **Archiv** auf.
 
-### Filter
-Nach Kunde, Plattform und Status filterbar (`draft`, `review`, `approved`, `scheduled`, `published`, `archived`).
+### Filter (Freigabe)
+Nach Kunde, Plattform und Status (`draft`, `review`, `approved`, `scheduled`) filterbar.
 
-### Detailansicht (Klick auf einen Eintrag)
+### Detailansicht Freigabe (Klick auf einen Eintrag)
 - **Fertige Post-Vorschau**: zeigt das verknüpfte Creative (falls vorhanden) und den Text/Hashtags nebeneinander — so, wie der fertige Post aussehen würde. Ist noch kein Creative verknüpft, erscheint ein Hinweis, eins im Creative Editor zu erstellen.
 - **Freigabe-Link erstellen**: erzeugt einen öffentlichen Link (`/approve/{token}`), den der Kunde ohne Login öffnen kann, um den Entwurf zu kommentieren/freizugeben.
-- **Freigabe-Aktionen**: je nach aktuellem Status stehen erlaubte Übergänge zur Verfügung (z.B. "Zur Freigabe senden", "Freigeben", "Als veröffentlicht markieren"). Optional kann eine Notiz mitgegeben werden.
+- **Freigabe-Aktionen**: je nach aktuellem Status stehen erlaubte Übergänge zur Verfügung (z.B. "Zur Freigabe senden", "Freigeben"). Optional kann eine Notiz mitgegeben werden. Wird ein Eintrag auf "veröffentlicht" oder "archiviert" gesetzt, schließt sich das Detailfenster automatisch und der Eintrag wandert ins Archiv.
 - **Historie**: zeigt alle bisherigen Statuswechsel mit Zeitstempel und Nutzer.
 - **löschen**: entfernt den Eintrag endgültig (mit Bestätigungsabfrage).
 
@@ -201,7 +201,22 @@ archived → draft
 
 ---
 
-## 10. Vorlagen (`/templates`)
+## 10. Archiv (`/archive`)
+
+Zeigt ausschließlich **fertige, abgeschlossene Posts** — Status `published` und `archived`. Kein aktiver Freigabe-Workflow mehr, keine Freigabe-Links.
+
+### Filter (Archiv)
+Nach Kunde, Plattform und Status (`published`, `archived`) filterbar.
+
+### Detailansicht Archiv (Klick auf einen Eintrag)
+- **Fertige Post-Vorschau**: Creative + Text/Hashtags nebeneinander.
+- **Historie**: alle bisherigen Statuswechsel.
+- **"Zurück zum Entwurf verschoben"**: holt einen fertigen Post zurück in den Freigabe-Workflow (`/approvals`), falls er doch nochmal bearbeitet werden muss.
+- **löschen**: entfernt den Eintrag endgültig (mit Bestätigungsabfrage).
+
+---
+
+## 11. Vorlagen (`/templates`)
 
 Vordefinierte, wiederverwendbare Design-Vorlagen für den Creative-Editor (einfacher als der Layout Editor — feste Struktur statt freiem Layout).
 
@@ -212,7 +227,7 @@ Vordefinierte, wiederverwendbare Design-Vorlagen für den Creative-Editor (einfa
 
 ---
 
-## 11. Media Library (`/media-library`)
+## 12. Media Library (`/media-library`)
 
 Zentrale Bibliothek für wiederverwendbare Assets (Logos, Hintergründe, Fotos etc.), die im Creative Editor und Layout Editor als Bildquelle ausgewählt werden können.
 
@@ -223,7 +238,7 @@ Zentrale Bibliothek für wiederverwendbare Assets (Logos, Hintergründe, Fotos e
 
 ---
 
-## 12. Einstellungen (`/settings`)
+## 13. Einstellungen (`/settings`)
 
 Reine Anzeige-Seite (keine Eingaben) mit Systemstatus: Domain, API-Basis-URL, Upload-Verzeichnis, ob die KI (Claude) konfiguriert ist.
 
@@ -249,9 +264,12 @@ Reine Anzeige-Seite (keine Eingaben) mit Systemstatus: Domain, API-Basis-URL, Up
     Text + Creative werden automatisch für alle generiert
     → Massen-Generator
 
-5. Im Archiv die fertige Vorschau (Text + Bild) prüfen,
+5. Im Freigabe-Bereich die fertige Vorschau (Text + Bild) prüfen,
    Freigabe-Link an den Kunden schicken, Status durch den Workflow schieben
+   → Freigabe
+
+6. Sobald veröffentlicht/archiviert: der Post wandert automatisch ins Archiv
    → Archiv
 
-6. Bei Bedarf: PNG exportieren (Creative Editor) für den finalen Download
+7. Bei Bedarf: PNG exportieren (Creative Editor) für den finalen Download
 ```

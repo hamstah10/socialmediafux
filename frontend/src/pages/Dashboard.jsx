@@ -143,7 +143,7 @@ export default function Dashboard() {
         <div className="fux-card" data-testid="latest-generated-card">
           <div className="flex items-center justify-between mb-4">
             <h2 className="fux-heading text-lg">Neueste Inhalte</h2>
-            <Link to="/archive" className="fux-label hover:text-primary">archiv →</Link>
+            <Link to="/approvals" className="fux-label hover:text-primary">freigabe →</Link>
           </div>
           <ul className="divide-y divide-border">
             {stats.latest_generated_content.length === 0 && (

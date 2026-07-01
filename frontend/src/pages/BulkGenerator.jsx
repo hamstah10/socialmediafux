@@ -255,9 +255,9 @@ export default function BulkGenerator() {
               <div className="flex gap-2">
                 <button
                   className="fux-btn-ghost flex-1 justify-center"
-                  onClick={() => navigate("/archive")}
+                  onClick={() => navigate("/approvals")}
                 >
-                  Archiv <ArrowRight size={12} />
+                  Freigabe <ArrowRight size={12} />
                 </button>
               </div>
             </div>

@@ -446,7 +446,7 @@ export default function LayoutEditor() {
         layers, groups,
       });
       toast.success("Layout gespeichert");
-      navigate("/archive");
+      navigate("/templates");
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Speichern fehlgeschlagen");
     } finally { setSaving(false); }

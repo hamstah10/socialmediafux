@@ -14,6 +14,7 @@ import NewsInbox from "@/pages/NewsInbox";
 import NewsImportUrl from "@/pages/NewsImportUrl";
 import ContentGenerator from "@/pages/ContentGenerator";
 import CreativeEditor from "@/pages/CreativeEditor";
+import Approvals from "@/pages/Approvals";
 import Archive from "@/pages/Archive";
 import Templates from "@/pages/Templates";
 import MediaLibrary from "@/pages/MediaLibrary";
@@ -59,6 +60,7 @@ function App() {
             <Route path="/creative-editor" element={<CreativeEditor />} />
             <Route path="/layout-editor" element={<LayoutEditor />} />
             <Route path="/bulk-generator" element={<BulkGenerator />} />
+            <Route path="/approvals" element={<Approvals />} />
             <Route path="/archive" element={<Archive />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/media-library" element={<MediaLibrary />} />
