@@ -10,6 +10,7 @@ import {
   Palette,
   Archive,
   LayoutTemplate,
+  Image,
   Settings,
   LogOut,
   Radar,
@@ -25,6 +26,7 @@ const NAV = [
   { to: "/creative-editor", label: "Creative Editor", icon: Palette, testid: "nav-creative-editor" },
   { to: "/archive", label: "Archive", icon: Archive, testid: "nav-archive" },
   { to: "/templates", label: "Templates", icon: LayoutTemplate, testid: "nav-templates" },
+  { to: "/media-library", label: "Media Library", icon: Image, testid: "nav-media" },
   { to: "/settings", label: "Settings", icon: Settings, testid: "nav-settings" },
 ];
 

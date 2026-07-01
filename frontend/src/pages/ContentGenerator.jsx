@@ -1,11 +1,70 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { AlertTriangle, CheckCircle2, Hash, Save, ShieldAlert, ShieldCheck, Sparkles, Wand2, Layers } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Hash, Save, ShieldAlert, ShieldCheck, Sparkles, Wand2, Layers, Lightbulb, Wrench } from "lucide-react";
 import { toast } from "sonner";
 
 const PLATFORMS = ["instagram","facebook","linkedin","google_business","blog","newsletter","whatsapp"];
 const TONES = ["technisch","seriös","sportlich","premium","verkaufsstark","kurz","b2b","lokal"];
+
+const MANUAL_TOPICS = [
+  "BMW 330d Chiptuning — Leistungssteigerung Erfahrungsbericht",
+  "AdBlue-Fehler Diagnose — Was Werkstätten wissen sollten",
+  "DPF-Probleme frühzeitig erkennen",
+  "KESS3 Bench-Tuning — Ablauf für Chiptuner",
+  "Remote Coding — was ist möglich?",
+  "Tuningfiles für andere Chiptuner — B2B-Service",
+];
+
+const QuickModes = ({ currentCustomer, onManual, onService }) => {
+  const services = currentCustomer?.services || [];
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3" data-testid="quick-modes">
+      <div className="fux-card">
+        <div className="flex items-center gap-2 mb-2">
+          <Lightbulb size={16} className="text-primary" />
+          <div className="fux-heading text-lg">Manual Post (aus Idee)</div>
+        </div>
+        <p className="fux-label mb-3">Ohne News — Thema direkt vorgeben.</p>
+        <div className="flex flex-wrap gap-1.5">
+          {MANUAL_TOPICS.map((t) => (
+            <button
+              key={t}
+              onClick={() => onManual(t)}
+              className="fux-badge hover:border-primary hover:text-primary text-left"
+              data-testid={`manual-${t.slice(0, 12)}`}
+            >
+              {t.slice(0, 60)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="fux-card">
+        <div className="flex items-center gap-2 mb-2">
+          <Wrench size={16} className="text-primary" />
+          <div className="fux-heading text-lg">Service Post</div>
+        </div>
+        <p className="fux-label mb-3">Lokaler Werkstatt-Post pro Service {currentCustomer ? `· ${currentCustomer.name}` : ""}.</p>
+        {services.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Kunde auswählen um Services anzuzeigen.</p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {services.map((s) => (
+              <button
+                key={s}
+                onClick={() => onService(s)}
+                className="fux-badge fux-badge-accent hover:brightness-110"
+                data-testid={`service-${s}`}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const useQuery = () => new URLSearchParams(useLocation().search);
 
@@ -141,6 +200,27 @@ export default function ContentGenerator() {
         <div className="fux-label">/ content-generator</div>
         <h1 className="fux-heading text-4xl mt-1">Content Generator</h1>
       </header>
+
+      <QuickModes
+        currentCustomer={currentCustomer}
+        onManual={(t) => {
+          setNewsId("");
+          setPlatform("instagram");
+          setCustomPrompt(t);
+          setCta("Jetzt anfragen");
+          toast.success("Manual-Preset geladen — direkt Generate klicken");
+        }}
+        onService={(service) => {
+          setNewsId("");
+          setPlatform("google_business");
+          setTone("lokal");
+          setCustomPrompt(
+            `Erstelle einen Service-Post für den Service "${service}". Beschreibe kurz, was der Kunde erwarten kann, welchen Nutzen der Service bringt, und fordere zur Kontaktaufnahme auf. Fahrzeugbezogen wenn sinnvoll.`,
+          );
+          setCta(`${service} anfragen`);
+          toast.success(`Service-Preset "${service}" geladen`);
+        }}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left: Form */}

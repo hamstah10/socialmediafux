@@ -44,7 +44,7 @@ export default function CustomerDetail() {
     fd.append("file", file);
     setBusy(true);
     try {
-      const r = await api.post(`/customers/${id}/logo`, fd, { headers: { "Content-Type": "multipart/form-data" } });
+      const r = await api.post(`/customers/${id}/logo`, fd);
       setCustomer(r.data);
       toast.success("Logo uploaded");
     } catch { toast.error("Upload failed"); } finally { setBusy(false); }

@@ -16,6 +16,7 @@ import ContentGenerator from "@/pages/ContentGenerator";
 import CreativeEditor from "@/pages/CreativeEditor";
 import Archive from "@/pages/Archive";
 import Templates from "@/pages/Templates";
+import MediaLibrary from "@/pages/MediaLibrary";
 import Settings from "@/pages/Settings";
 
 const Protected = ({ children }) => {
@@ -56,6 +57,7 @@ function App() {
             <Route path="/creative-editor" element={<CreativeEditor />} />
             <Route path="/archive" element={<Archive />} />
             <Route path="/templates" element={<Templates />} />
+            <Route path="/media-library" element={<MediaLibrary />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

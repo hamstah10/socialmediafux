@@ -25,6 +25,7 @@ from routers.customers_router import router as customers_router  # noqa: E402
 from routers.dashboard_router import router as dashboard_router  # noqa: E402
 from routers.creatives_router import router as creatives_router  # noqa: E402
 from routers.generator_router import router as generator_router  # noqa: E402
+from routers.media_router import router as media_router  # noqa: E402
 from routers.news_items_router import router as news_items_router  # noqa: E402
 from routers.news_sources_router import router as news_sources_router  # noqa: E402
 from routers.templates_router import router as templates_router  # noqa: E402
@@ -84,6 +85,7 @@ api_router.include_router(generator_router)
 api_router.include_router(creatives_router)
 api_router.include_router(templates_router)
 api_router.include_router(approvals_router)
+api_router.include_router(media_router)
 
 app.include_router(api_router)
 
