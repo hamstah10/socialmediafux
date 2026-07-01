@@ -1,0 +1,114 @@
+{
+  "project_name": "SocialFUX",
+  "domain": "Automotive / Chiptuning / SaaS Content Platform",
+  "theme": "dark",
+  "archetype": "Performance Pro (Archetype 2) blended with Swiss Brutalist (Archetype 4)",
+  "aesthetic_rules": {
+    "look_and_feel": "wenig border-radius, scharfe Cards, technische Linien, Grid-Hintergründe, Automotive / ECU / Dashboard Look, keine Canva-Optik, keine verspielten runden Karten. Harte Linien. Saubere Abstände. Professioneller SaaS-Look.",
+    "global_background": "Technical grid background applied to the body or main wrapper to fulfill 'Grid-Hintergründe'. Use a subtle SVG grid or CSS linear-gradient with the Hairline color (#232D42).",
+    "surface_strategy": "Grid Borders (The Technical Look). Expose the skeleton. Cards should be flat, with 1px solid borders. Do not use soft drop shadows. Use harsh 1px borders to define hierarchy.",
+    "radius": "Minimal. Use rounded-none (0px) for cards, sections, and major containers. Use rounded-sm (2px) strictly for small interactive elements like inputs, checkboxes, or tiny buttons."
+  },
+  "typography": {
+    "font_families": {
+      "heading": "'Rajdhani', sans-serif",
+      "body": "'IBM Plex Sans', sans-serif",
+      "mono": "'JetBrains Mono', monospace"
+    },
+    "scale": {
+      "h1": "text-4xl tracking-tight font-bold uppercase",
+      "h2": "text-2xl tracking-tight font-semibold uppercase",
+      "h3": "text-lg tracking-wide font-semibold",
+      "body": "text-sm leading-relaxed",
+      "small": "text-xs tracking-wider uppercase text-muted-foreground",
+      "stats_number": "text-5xl font-heading font-bold text-white tracking-tighter"
+    },
+    "instructions": "All major headings (h1, h2) and data-heavy numbers MUST use Rajdhani to give the 'ECU telemetry' look. Body text must use IBM Plex Sans for legibility. Avoid centered text. Left-align almost everything for structural technical feel."
+  },
+  "colors": {
+    "description": "User explicitly defined color scheme. MUST use exactly as defined below.",
+    "tailwind_vars": {
+      "background": "#080D1A",
+      "foreground": "#F5F7FA",
+      "card": "#0C1220",
+      "card-foreground": "#F5F7FA",
+      "popover": "#0F1526",
+      "popover-foreground": "#F5F7FA",
+      "primary": "#B4E600",
+      "primary-foreground": "#080D1A",
+      "secondary": "#0F1526",
+      "secondary-foreground": "#F5F7FA",
+      "muted": "#0C1220",
+      "muted-foreground": "#8A94A6",
+      "accent": "#B4E600",
+      "accent-foreground": "#080D1A",
+      "destructive": "#FF3B30",
+      "destructive-foreground": "#FFFFFF",
+      "warning": "#FFB020",
+      "warning-foreground": "#080D1A",
+      "success": "#B4E600",
+      "success-foreground": "#080D1A",
+      "border": "#232D42",
+      "input": "#232D42",
+      "ring": "#B4E600"
+    }
+  },
+  "components": {
+    "button": "Sharp edges (rounded-none). Primary button uses bg-primary (#B4E600) and text-primary-foreground (#080D1A). Hover state should increase brightness or add a 1px border. Secondary buttons use transparent background with a 1px solid border (#232D42).",
+    "cards": "Zero border-radius (rounded-none). Background #0C1220. Border 1px solid #232D42. No drop shadows.",
+    "inputs": "Background #080D1A or #0F1526. Border 1px solid #232D42. Focus ring should be #B4E600 with 0 offset. Use rounded-none or rounded-sm.",
+    "badges": "Sharp rectangular tags. Use uppercase mono font for technical status (e.g., 'APPROVED', 'RISKY').",
+    "icons": "Use lucide-react. Keep stroke width crisp (1.5px or 2px).",
+    "navigation": "Sidebar should have a clear 1px right border (#232D42). Active state for links should use a left-border highlight of #B4E600 instead of a full rounded background."
+  },
+  "layout_and_spacing": {
+    "spacing_scale": "Use tight spacing for the command-center/dashboard feel. Padding inside cards: p-4 or p-6. Gaps between grid items: gap-4 or gap-6. Dashboard should use Mode B: The 'Control Room' Grid. High density, fully utilized pixels.",
+    "grid": "Dashboard must utilize CSS Grid extensively. 'Control Room' mode. Stats row: grid-cols-2 md:grid-cols-5. Main content: grid-cols-1 lg:grid-cols-3."
+  },
+  "interactions": {
+    "hover": "Hover states must explicitly alter text or border color to maintain contrast. Example: hover:border-primary transition-colors.",
+    "focus": "Focus-visible must use ring-1 ring-primary ring-offset-0 ring-offset-background.",
+    "animations": "Minimal. No bouncy animations. Fast, snappy transitions (duration 100ms or 150ms) to fit the performance/speed theme."
+  },
+  "media": {
+    "instructions": "Use these placeholder images for news feeds, creative editor mockups, and login background.",
+    "image_urls": {
+      "news_item_1": {
+        "url": "https://images.unsplash.com/photo-1673153069612-3c4b591860ce?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MDV8MHwxfHNlYXJjaHwxfHxlbmdpbmUlMjBiYXklMjBkYXJrfGVufDB8fHx8MTc4MjkyMjIzOXww&ixlib=rb-4.1.0&q=85",
+        "description": "Exhaust system close up for tuning news"
+      },
+      "news_item_2": {
+        "url": "https://images.unsplash.com/photo-1606577924006-27d39b132ae2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MTJ8MHwxfHNlYXJjaHwxfHxwZXJmb3JtYW5jZSUyMGNhciUyMHR1bmluZ3xlbnwwfHx8fDE3ODI5MjIyMzl8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Performance tuning car"
+      },
+      "creative_editor_background": {
+        "url": "https://images.unsplash.com/photo-1645400379459-f6fd3d963fd4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAzNDR8MHwxfHNlYXJjaHwxfHxzcG9ydHMlMjBjYXIlMjBkYXNoYm9hcmQlMjBkYXJrfGVufDB8fHx8MTc4MjkyMjIzOXww&ixlib=rb-4.1.0&q=85",
+        "description": "Dark sports car for creative template background"
+      },
+      "dashboard_accent_img": {
+        "url": "https://images.pexels.com/photos/17245060/pexels-photo-17245060.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+        "description": "Red illuminated speedometer/dashboard telemetry"
+      }
+    }
+  },
+  "testing": {
+    "attributes": "All interactive and key informational elements MUST include a data-testid attribute in kebab-case."
+  },
+  "page_specific_rules": {
+    "login": "Split screen layout. Left side: dark technical grid background with logo. Right side: login form inside an elevated card (#0F1526) with harsh 1px borders.",
+    "dashboard": "Top row: 5 uniform stat cards (customer count, new news, drafts, approved, published). Below: 2-column layout mapping 'Latest News Feed' and 'Latest Generated Content'.",
+    "creative_editor": "A strict 3-pane layout. Left: Tools/Parameters (customer, template, format). Middle: Large Live Preview canvas with grid background. Right: Properties/Export controls. Resembles a professional IDE or 3D software.",
+    "customers_list": "Table layout with strict lines. No alternating row colors, just a bottom hairline border (#232D42) per row. Hovering a row brightens the background slightly (#0C1220 to #0F1526).",
+    "content_generator": "Form-heavy layout but segmented into logical steps. Use the warning color (#FFB020) for the compliance checks on risky tuning claims."
+  },
+  "instructions_to_main_agent": [
+    "You MUST configure tailwind.config.js exactly with the hex colors specified under colors.tailwind_vars.",
+    "You MUST disable border radiuses across all Shadcn UI components (set --radius to 0 in css, or manually remove rounded classes) to ensure the sharp, no-canva look.",
+    "Implement the 'Grid-Hintergründe' by adding a CSS background pattern to the main layout or body tag using linear-gradient and the hairline color #232D42.",
+    "Use Javascript (.js/.jsx), NOT Typescript (.tsx).",
+    "Do NOT use Space Grotesk or Inter for headings. Ensure fonts 'Rajdhani' and 'IBM Plex Sans' are imported via Google Fonts in index.html.",
+    "Always enforce dark mode by default.",
+    "Ensure the compliance warnings use the specified Danger or Warning colors based on severity.",
+    "Use lucide-react icons exclusively."
+  ]
+}
