@@ -48,24 +48,67 @@ def _pick_image_from_entry(entry: Any) -> Optional[str]:
     thumbs = entry.get("media_thumbnail") or []
     if thumbs and isinstance(thumbs, list):
         return thumbs[0].get("url")
+
+    # RSS 2.0 <enclosure> tags
+    enclosures = entry.get("enclosures") or []
+    for enc in enclosures:
+        if enc.get("type", "").startswith("image/") and enc.get("href"):
+            return enc["href"]
+        if enc.get("url", "").lower().endswith((".jpg", ".jpeg", ".png", ".webp", ".gif")):
+            return enc["url"]
+
     for link in entry.get("links", []) or []:
         if link.get("type", "").startswith("image/"):
             return link.get("href")
-    # Try scraping first <img> in summary/content
-    html = entry.get("summary") or (entry.get("content", [{}])[0].get("value") if entry.get("content") else "")
-    if html:
+
+    # Feedparser puts full HTML content under `content`, and summary is often plain text.
+    html_candidates: list[str] = []
+    if entry.get("content"):
+        for c in entry["content"]:
+            if isinstance(c, dict) and c.get("value"):
+                html_candidates.append(c["value"])
+    if entry.get("summary"):
+        html_candidates.append(entry["summary"])
+    if entry.get("description"):
+        html_candidates.append(entry["description"])
+
+    for html in html_candidates:
         try:
             soup = BeautifulSoup(html, "lxml")
             img = soup.find("img")
-            if img and img.get("src"):
-                return img["src"]
+            if img:
+                src = img.get("src") or img.get("data-src") or img.get("data-lazy-src")
+                if src:
+                    return src
         except Exception:
-            pass
+            continue
+    return None
+
+
+async def _og_image(url: str, client: httpx.AsyncClient) -> Optional[str]:
+    """Lightweight fetch of an article to pull og:image / twitter:image."""
+    try:
+        r = await client.get(url, timeout=8)
+        r.raise_for_status()
+        soup = BeautifulSoup(r.text, "lxml")
+        for prop in ("og:image", "og:image:secure_url", "twitter:image"):
+            tag = soup.find("meta", attrs={"property": prop}) or soup.find("meta", attrs={"name": prop})
+            if tag and tag.get("content"):
+                return tag["content"].strip()
+        img = soup.find("img")
+        if img and img.get("src"):
+            return img["src"]
+    except Exception:
+        return None
     return None
 
 
 async def fetch_rss(rss_url: str, limit: int = 20) -> list[dict]:
-    """Fetch and parse an RSS/Atom feed. Returns list of normalised item dicts."""
+    """Fetch and parse an RSS/Atom feed. Returns list of normalised item dicts.
+
+    For items missing an image in the feed, opportunistically fetches the
+    article page to extract og:image (limited concurrency, best-effort).
+    """
     try:
         async with httpx.AsyncClient(timeout=20, headers=DEFAULT_HEADERS, follow_redirects=True) as c:
             r = await c.get(rss_url)
@@ -96,6 +139,20 @@ async def fetch_rss(rss_url: str, limit: int = 20) -> list[dict]:
             "published_at": _to_iso(entry.get("published_parsed") or entry.get("updated_parsed")),
             "category": (entry.get("tags") or [{}])[0].get("term") if entry.get("tags") else None,
         })
+
+    # Enrich items missing an image_url by scraping their article page (best effort).
+    missing = [i for i in items if not i.get("image_url") and i.get("url")]
+    if missing:
+        async with httpx.AsyncClient(headers=DEFAULT_HEADERS, follow_redirects=True) as c:
+            import asyncio
+            sem = asyncio.Semaphore(6)
+
+            async def enrich(item: dict) -> None:
+                async with sem:
+                    item["image_url"] = await _og_image(item["url"], c)
+
+            await asyncio.gather(*(enrich(i) for i in missing))
+
     return items
 
 

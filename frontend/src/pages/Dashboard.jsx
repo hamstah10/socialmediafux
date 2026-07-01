@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, resolveUpload } from "../lib/api";
 import {
@@ -11,6 +11,8 @@ import {
   Rss,
   Wand2,
   Palette,
+  ImageOff,
+  Radar,
 } from "lucide-react";
 
 const Stat = ({ icon: Icon, label, value, testid }) => (
@@ -37,14 +39,44 @@ const QuickAction = ({ to, icon: Icon, label, testid }) => (
   </Link>
 );
 
+const NewsThumb = ({ src, label }) => {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div className="w-14 h-14 border border-border bg-secondary shrink-0 flex items-center justify-center text-muted-foreground">
+        <ImageOff size={14} strokeWidth={1.5} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={label || ""}
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      className="w-14 h-14 object-cover border border-border shrink-0 bg-secondary"
+      onError={() => setFailed(true)}
+    />
+  );
+};
+
 export default function Dashboard() {
   const [stats, setStats] = useState(null);
+  const [sources, setSources] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const sourceMap = useMemo(() => {
+    const m = {};
+    for (const s of sources) m[s.id] = s;
+    return m;
+  }, [sources]);
+
   useEffect(() => {
-    api
-      .get("/dashboard/stats")
-      .then((r) => setStats(r.data))
+    Promise.all([
+      api.get("/dashboard/stats"),
+      api.get("/news-sources"),
+    ])
+      .then(([s, src]) => { setStats(s.data); setSources(src.data); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -83,22 +115,28 @@ export default function Dashboard() {
                 No news yet. Fetch a source or import a URL.
               </li>
             )}
-            {stats.latest_news.map((n) => (
-              <li key={n.id} className="py-3 flex gap-3" data-testid={`dash-news-${n.id}`}>
-                {n.image_url && (
-                  <img
-                    src={resolveUpload(n.image_url).startsWith("http") ? n.image_url : resolveUpload(n.image_url)}
-                    alt=""
-                    className="w-14 h-14 object-cover border border-border shrink-0"
-                    onError={(e) => (e.target.style.display = "none")}
-                  />
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-medium truncate">{n.title}</div>
-                  <div className="fux-label mt-1">{n.status} · {n.published_at?.slice(0, 10) || "—"}</div>
-                </div>
-              </li>
-            ))}
+            {stats.latest_news.map((n) => {
+              const src = n.news_source_id ? sourceMap[n.news_source_id] : null;
+              const srcLabel = src?.name || "Manual";
+              const raw = n.image_url;
+              const imgSrc = raw
+                ? (raw.startsWith("http") ? raw : resolveUpload(raw))
+                : null;
+              return (
+                <li key={n.id} className="py-3 flex gap-3" data-testid={`dash-news-${n.id}`}>
+                  <NewsThumb src={imgSrc} label={srcLabel} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium truncate">{n.title}</div>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="fux-badge fux-badge-accent inline-flex items-center gap-1">
+                        <Radar size={10} /> {srcLabel}
+                      </span>
+                      <span className="fux-label">{n.status} · {n.published_at?.slice(0, 10) || "—"}</span>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
 

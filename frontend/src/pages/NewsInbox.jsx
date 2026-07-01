@@ -1,10 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { Archive as ArchiveIcon, CircleSlash, Link2, Wand2 } from "lucide-react";
+import { Archive as ArchiveIcon, CircleSlash, ImageOff, Link2, Radar, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 
 const STATUSES = ["all", "new", "reviewed", "used", "ignored", "archived"];
+
+// Displays the image if the URL loads, falls back to a placeholder card
+// with the source name so users always see WHERE a news item came from.
+const NewsImage = ({ src, sourceName }) => {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <div
+        className="w-32 h-32 border border-border shrink-0 flex flex-col items-center justify-center bg-secondary text-muted-foreground gap-1"
+        data-testid="news-image-fallback"
+      >
+        <ImageOff size={20} strokeWidth={1.5} />
+        <span className="fux-label text-[9px] text-center px-1 leading-tight">
+          {sourceName || "no image"}
+        </span>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={sourceName || ""}
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      className="w-32 h-32 object-cover border border-border shrink-0 bg-secondary"
+      onError={() => setFailed(true)}
+    />
+  );
+};
 
 export default function NewsInbox() {
   const navigate = useNavigate();
@@ -14,6 +43,12 @@ export default function NewsInbox() {
   const [sourceId, setSourceId] = useState("");
   const [importUrl, setImportUrl] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const sourceMap = useMemo(() => {
+    const m = {};
+    for (const s of sources) m[s.id] = s;
+    return m;
+  }, [sources]);
 
   const load = () => {
     const q = new URLSearchParams();
@@ -46,6 +81,12 @@ export default function NewsInbox() {
 
   const openInGenerator = (id) => {
     navigate(`/content-generator?news=${id}`);
+  };
+
+  // Derive a readable domain from an item URL as last-resort source hint.
+  const domainOf = (url) => {
+    try { return new URL(url).hostname.replace(/^www\./, ""); }
+    catch { return null; }
   };
 
   return (
@@ -98,39 +139,43 @@ export default function NewsInbox() {
             No news items. Fetch a source or import a URL above.
           </div>
         )}
-        {items.map((n) => (
-          <article key={n.id} className="fux-card flex gap-4" data-testid={`news-item-${n.id}`}>
-            {n.image_url && (
-              <img
-                src={n.image_url}
-                alt=""
-                className="w-32 h-32 object-cover border border-border shrink-0"
-                onError={(e) => (e.target.style.display = "none")}
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="fux-badge fux-badge-accent">{n.status}</span>
-                <span className="fux-label">{n.published_at?.slice(0, 10) || "—"}</span>
+        {items.map((n) => {
+          const source = n.news_source_id ? sourceMap[n.news_source_id] : null;
+          const sourceLabel = source?.name || domainOf(n.url) || "Manual import";
+          return (
+            <article key={n.id} className="fux-card flex gap-4" data-testid={`news-item-${n.id}`}>
+              <NewsImage src={n.image_url} sourceName={sourceLabel} />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                  <span
+                    className="fux-badge fux-badge-accent inline-flex items-center gap-1"
+                    data-testid={`news-source-${n.id}`}
+                    title={source?.url || n.url || ""}
+                  >
+                    <Radar size={10} /> {sourceLabel}
+                  </span>
+                  <span className="fux-badge">{n.status}</span>
+                  <span className="fux-label">{n.published_at?.slice(0, 10) || "—"}</span>
+                </div>
+                <h3 className="font-semibold text-base leading-snug line-clamp-2">
+                  <a href={n.url} target="_blank" rel="noreferrer" className="hover:text-primary">{n.title}</a>
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2 mt-2">{n.summary}</p>
+                <div className="flex items-center gap-3 mt-3">
+                  <button onClick={() => openInGenerator(n.id)} className="fux-btn-primary" data-testid={`use-news-${n.id}`}>
+                    <Wand2 size={12} /> Use
+                  </button>
+                  <button onClick={() => setItemStatus(n.id, "ignored")} className="fux-label hover:text-destructive inline-flex items-center gap-1">
+                    <CircleSlash size={12} /> ignore
+                  </button>
+                  <button onClick={() => setItemStatus(n.id, "archived")} className="fux-label hover:text-foreground inline-flex items-center gap-1">
+                    <ArchiveIcon size={12} /> archive
+                  </button>
+                </div>
               </div>
-              <h3 className="font-semibold text-base leading-snug line-clamp-2">
-                <a href={n.url} target="_blank" rel="noreferrer" className="hover:text-primary">{n.title}</a>
-              </h3>
-              <p className="text-sm text-muted-foreground line-clamp-2 mt-2">{n.summary}</p>
-              <div className="flex items-center gap-3 mt-3">
-                <button onClick={() => openInGenerator(n.id)} className="fux-btn-primary" data-testid={`use-news-${n.id}`}>
-                  <Wand2 size={12} /> Use
-                </button>
-                <button onClick={() => setItemStatus(n.id, "ignored")} className="fux-label hover:text-destructive inline-flex items-center gap-1">
-                  <CircleSlash size={12} /> ignore
-                </button>
-                <button onClick={() => setItemStatus(n.id, "archived")} className="fux-label hover:text-foreground inline-flex items-center gap-1">
-                  <ArchiveIcon size={12} /> archive
-                </button>
-              </div>
-            </div>
-          </article>
-        ))}
+            </article>
+          );
+        })}
       </div>
     </div>
   );
