@@ -1,60 +1,42 @@
 # SocialFUX — VPS Deployment Notes
 
 ## Target
-- Domain: `social.tuningfux.de`
+- Domain: `social.tuningfux.de` (CloudPanel-managed host, 72.61.80.207, Linux user `social`)
 - Backend runs internally on `127.0.0.1:7090`
 - Frontend built with `yarn build` (in this Emergent template) or `npm run build`
-- MongoDB database — Emergent template uses Mongo (DB_NAME `socialfux`). If you migrate
-  the codebase to MariaDB later, use DB name `socialfux`, user `socialfux`,
-  password `CHANGE_ME` (do not commit real credentials).
+- Database: **MySQL 8**, DB name `socialfux`, user `socialfux` (already provisioned in
+  CloudPanel — do not commit the real password; it lives only in `backend/.env` on the VPS).
+  `backend/db.py` stores each former Mongo "collection" as a MySQL table with a
+  `data JSON` column plus a generated/indexed `doc_id` column, so router code is
+  unchanged from the Mongo version.
 
-## Backend (systemd example)
+## CloudPanel specifics
+- The site was created as a generic reverse-proxy ("Python"/Node-style) CloudPanel site.
+  Its Nginx vhost forwards **everything** (`location /`) to `127.0.0.1:7090` — not just
+  `/api/`. Because of that, `backend/server.py` also serves the built frontend
+  (`frontend/build`) directly as a mounted SPA (see the `FRONTEND_BUILD_DIR` block at the
+  bottom of `server.py`), instead of Nginx serving static files itself.
+- Process supervision uses `supervisor` (`/etc/supervisor/conf.d/`), not systemd — the
+  `social` Linux user has no sudo, so supervisor program files must be added as root.
+
+## Backend (supervisor example — /etc/supervisor/conf.d/social-api.conf)
 ```
-[Unit]
-Description=SocialFUX API
-After=network.target
-
-[Service]
-User=socialfux
-WorkingDirectory=/home/socialfux/htdocs/social.tuningfux.de/backend
-Environment="MONGO_URL=mongodb://localhost:27017"
-Environment="DB_NAME=socialfux"
-Environment="JWT_SECRET=CHANGE_ME"
-Environment="EMERGENT_LLM_KEY=CHANGE_ME"
-ExecStart=/home/socialfux/.venvs/socialfux/bin/uvicorn server:app --host 127.0.0.1 --port 7090
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
+[program:social-api]
+user=social
+directory=/home/social/htdocs/social.tuningfux.de/backend
+environment=MYSQL_HOST="127.0.0.1",MYSQL_PORT="3306",MYSQL_USER="socialfux",MYSQL_PASSWORD="CHANGE_ME",MYSQL_DATABASE="socialfux",JWT_SECRET="CHANGE_ME",EMERGENT_LLM_KEY="CHANGE_ME",UPLOAD_DIR="/home/social/htdocs/social.tuningfux.de/uploads",FRONTEND_BUILD_DIR="/home/social/htdocs/social.tuningfux.de/frontend/build"
+command=/home/social/.venvs/socialfux/bin/uvicorn server:app --host 127.0.0.1 --port 7090
+autostart=true
+autorestart=true
+stdout_logfile=/home/social/logs/social-api.out.log
+stderr_logfile=/home/social/logs/social-api.err.log
 ```
+Reload with `supervisorctl reread && supervisorctl update` as root.
 
 ## Nginx
-
-```
-server {
-    server_name social.tuningfux.de;
-    root /home/socialfux/htdocs/social.tuningfux.de/frontend/build;
-    index index.html;
-
-    location /api/ {
-        proxy_pass http://127.0.0.1:7090/api/;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_read_timeout 120s;
-    }
-
-    location /uploads/ {
-        alias /home/socialfux/htdocs/social.tuningfux.de/uploads/;
-        expires 30d;
-    }
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-}
-```
+Already provisioned by CloudPanel — no manual Nginx edits needed. The vhost
+proxies all paths to port 7090; `server.py` distinguishes `/api/*`, `/uploads/*`,
+and everything else (SPA fallback to `index.html`).
 
 ## Uploads
 Persistent directory: `/home/socialfux/htdocs/social.tuningfux.de/uploads/`

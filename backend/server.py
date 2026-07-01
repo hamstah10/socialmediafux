@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from starlette.responses import FileResponse
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / ".env")
@@ -18,7 +19,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import after env loaded
-from db import client  # noqa: E402
+from db import client, init_db  # noqa: E402
 from routers.auth_router import router as auth_router  # noqa: E402
 from routers.approvals_router import router as approvals_router  # noqa: E402
 from routers.customers_router import router as customers_router  # noqa: E402
@@ -39,6 +40,7 @@ app = FastAPI(title="SocialFUX API", version="0.1.0")
 @app.on_event("startup")
 async def on_start() -> None:
     logger.info("SocialFUX starting up")
+    await init_db()
     try:
         await run_seed()
     except Exception as e:
@@ -114,3 +116,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# --- Frontend SPA --------------------------------------------------------------
+# On the VPS, Nginx (CloudPanel reverse-proxy) forwards everything to this
+# process, so it also serves the built React app. Mounted last so it never
+# shadows /api or /uploads.
+FRONTEND_BUILD_DIR = Path(os.environ.get("FRONTEND_BUILD_DIR", str(ROOT_DIR.parent / "frontend" / "build")))
+if FRONTEND_BUILD_DIR.is_dir():
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_BUILD_DIR / "static")), name="frontend_static")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        candidate = FRONTEND_BUILD_DIR / full_path
+        if full_path and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(FRONTEND_BUILD_DIR / "index.html")

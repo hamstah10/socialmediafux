@@ -5,7 +5,7 @@ already has older seed data.
 """
 import logging
 from auth import hash_password
-from db import base_fields, db, find_one, insert_one
+from db import base_fields, db, distinct_ids, find_one, insert_one
 
 logger = logging.getLogger(__name__)
 
@@ -142,7 +142,7 @@ async def cleanup_orphan_news_items() -> None:
     Runs on every startup. Manual URL imports (news_source_id is None)
     are always kept.
     """
-    valid_ids = {s["id"] async for s in db["news_sources"].find({}, {"id": 1})}
+    valid_ids = await distinct_ids("news_sources")
     r = await db["news_items"].delete_many({
         "news_source_id": {"$nin": list(valid_ids) + [None]},
     })
