@@ -221,9 +221,27 @@ export default function Templates() {
                 <div>
                   <label className="fux-label block mb-1.5">Akzentfarbe</label>
                   <div className="flex gap-2">
-                    <input type="color" className="fux-input w-20 h-10 p-1" value={form.config.accent} onChange={(e) => setForm({ ...form, config: { ...form.config, accent: e.target.value } })} data-testid="tf-accent-color" />
-                    <input className="fux-input" value={form.config.accent} onChange={(e) => setForm({ ...form, config: { ...form.config, accent: e.target.value } })} data-testid="tf-accent-hex" />
+                    <input
+                      type="color"
+                      className="fux-input w-20 h-10 p-1"
+                      value={previewCustomerId ? previewCustomer.accent_color || "#B4E600" : form.config.accent}
+                      disabled={!!previewCustomerId}
+                      onChange={(e) => setForm({ ...form, config: { ...form.config, accent: e.target.value } })}
+                      data-testid="tf-accent-color"
+                    />
+                    <input
+                      className="fux-input"
+                      value={form.config.accent}
+                      disabled={!!previewCustomerId}
+                      onChange={(e) => setForm({ ...form, config: { ...form.config, accent: e.target.value } })}
+                      data-testid="tf-accent-hex"
+                    />
                   </div>
+                  {previewCustomerId && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ein Kunde ist ausgewählt — sein Branding hat Vorrang.
+                    </p>
+                  )}
                 </div>
                 <div>
                   <label className="fux-label block mb-1.5">Hintergrundfarbe</label>
@@ -231,14 +249,16 @@ export default function Templates() {
                     <input
                       type="color"
                       className="fux-input w-20 h-10 p-1"
-                      value={form.config.background_color || previewCustomer.primary_color || "#080D1A"}
+                      value={previewCustomerId ? previewCustomer.primary_color || "#080D1A" : (form.config.background_color || "#080D1A")}
+                      disabled={!!previewCustomerId}
                       onChange={(e) => setForm({ ...form, config: { ...form.config, background_color: e.target.value } })}
                       data-testid="tf-bgcolor-color"
                     />
                     <input
                       className="fux-input"
-                      placeholder={`Kunde: ${previewCustomer.primary_color || "#080D1A"}`}
+                      placeholder="z.B. #080D1A"
                       value={form.config.background_color || ""}
+                      disabled={!!previewCustomerId}
                       onChange={(e) => setForm({ ...form, config: { ...form.config, background_color: e.target.value } })}
                       data-testid="tf-bgcolor-hex"
                     />
@@ -254,7 +274,9 @@ export default function Templates() {
                     )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Leer lassen, um die Primärfarbe des ausgewählten Kunden zu übernehmen.
+                    {previewCustomerId
+                      ? "Ein Kunde ist ausgewählt — sein Branding hat Vorrang. Wähle \"Demo-Branding\" oben, um eine eigene Farbe zu setzen."
+                      : "Gilt nur, solange kein Kunde ausgewählt ist (Demo-Branding)."}
                   </p>
                 </div>
                 <label className="flex items-center gap-2 fux-label pt-2">

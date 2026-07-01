@@ -55,8 +55,8 @@ export default function CreativePreview({
 }) {
   const fmt = FORMAT_SIZES[format] || FORMAT_SIZES.instagram_square;
   const config = template?.config || {};
-  const accent = config.accent || customer?.accent_color || "#B4E600";
-  const primary = config.background_color || customer?.primary_color || "#080D1A";
+  const accent = customer?.accent_color || config.accent || "#B4E600";
+  const primary = customer?.primary_color || config.background_color || "#080D1A";
   const badge = config.badge || customer?.tone_of_voice || "Update";
   const bgType = template?.background_type || "grid";
   const website = customer?.website || "";
