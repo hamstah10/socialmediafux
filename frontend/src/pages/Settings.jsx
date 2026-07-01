@@ -26,7 +26,7 @@ export default function Settings() {
             <SettingsRow label="Domain" value={s.domain} testid="set-domain" />
             <SettingsRow label="API-Basis-URL" value={API_BASE} testid="set-api" />
             <SettingsRow label="Upload-Verzeichnis" value={s.upload_dir} testid="set-uploads" />
-            <SettingsRow label="LLM konfiguriert" value={s.llm_configured ? "ja · Claude Sonnet 4.5" : "nein (Mock-Generator)"} testid="set-llm" />
+            <SettingsRow label="LLM konfiguriert" value={s.llm_configured ? "ja · Claude Opus 4.8" : "nein (Mock-Generator)"} testid="set-llm" />
           </>
         ) : (
           <div className="fux-label">Lädt…</div>
