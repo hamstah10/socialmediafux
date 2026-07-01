@@ -8,6 +8,8 @@ export const FORMAT_SIZES = {
   facebook_landscape: { w: 1200, h: 630, label: "Facebook Landscape" },
   linkedin_square: { w: 1200, h: 1200, label: "LinkedIn Square" },
   google_business: { w: 1200, h: 900, label: "Google Business" },
+  blog_thumbnail: { w: 1200, h: 675, label: "Blog Thumbnail" },
+  website_hero: { w: 1600, h: 900, label: "Website Hero" },
 };
 
 export const BACKGROUND_TYPES = ["grid", "diagonal", "lines", "clean"];

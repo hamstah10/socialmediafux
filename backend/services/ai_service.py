@@ -151,3 +151,70 @@ async def generate_content(customer: dict, news: Optional[dict], platform: str,
     except Exception as e:
         logger.exception("AI generation failed: %s", e)
         return _mock_generate(customer, news, platform, tone, cta, target_link)
+
+
+
+VARIANT_TONES = [
+    ("technisch", "Sachlich, technisch fundiert, präzise. Ziel: Fachpublikum."),
+    ("verkaufsstark", "Emotional, benefit-orientiert, mit klarem Kaufanreiz."),
+    ("kurz", "Sehr knapp, maximal 2-3 Sätze, direkte Ansprache."),
+]
+
+
+async def generate_variants(customer: dict, news: Optional[dict], platform: str,
+                            cta: Optional[str], target_link: Optional[str],
+                            custom_prompt: Optional[str] = None) -> list[dict]:
+    """Generate 3 variants in parallel with different tones."""
+    import asyncio
+    tasks = [
+        generate_content(customer=customer, news=news, platform=platform,
+                         tone=tone_key, cta=cta, target_link=target_link,
+                         custom_prompt=(custom_prompt or "") + f" | Tonalität-Hinweis: {tone_hint}")
+        for tone_key, tone_hint in VARIANT_TONES
+    ]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    variants: list[dict] = []
+    for (tone_key, _), r in zip(VARIANT_TONES, results):
+        if isinstance(r, Exception):
+            r = _mock_generate(customer, news, platform, tone_key, cta, target_link)
+        r["tone"] = tone_key
+        variants.append(r)
+    return variants
+
+
+async def safe_rewrite(text: str, customer: Optional[dict] = None) -> str:
+    """Rewrite riskante Aussagen zu sicheren Formulierungen via Claude."""
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        # Basic keyword replacement fallback
+        replacements = {
+            "100% legal": "ausschließlich für Motorsport, Export oder Offroad",
+            "TÜV garantiert": "individuelle Prüfung je Fahrzeug erforderlich",
+            "garantiert mehr Leistung": "realistische Leistungssteigerung je nach Fahrzeug",
+            "DPF off legal": "DPF-Anpassung für Motorsport/Export",
+            "AdBlue legal deaktivieren": "AdBlue-Anpassung für nicht-öffentliche Fahrzeuge",
+        }
+        out = text
+        for k, v in replacements.items():
+            out = re.sub(re.escape(k), v, out, flags=re.IGNORECASE)
+        return out
+    try:
+        chat = LlmChat(
+            api_key=api_key,
+            session_id=f"rewrite-{customer.get('id', 'x') if customer else 'x'}",
+            system_message=(
+                "Du bist ein deutscher Rechts- und Marketing-Experte für Automotive-/"
+                "Chiptuning-Content. Formuliere den gegebenen Text so um, dass er "
+                "keine juristisch riskanten Aussagen enthält. Verboten: '100% legal', "
+                "'TÜV garantiert', 'garantierte Leistung', 'DPF off legal', "
+                "'AdBlue deaktivieren'. Ersetze durch neutralere Aussagen wie "
+                "'für Motorsport-/Export-/Offroad-Anwendungen', 'individuelle Prüfung', "
+                "'realistische Leistungssteigerung'. Behalte Botschaft, Länge und Ton bei. "
+                "Antworte AUSSCHLIESSLICH mit dem neuen Text, ohne Erklärung, ohne Markdown."
+            ),
+        ).with_model(MODEL_PROVIDER, MODEL_NAME)
+        response = await chat.send_message(UserMessage(text=text))
+        return (response if isinstance(response, str) else str(response)).strip()
+    except Exception as e:
+        logger.warning("safe_rewrite failed: %s", e)
+        return text

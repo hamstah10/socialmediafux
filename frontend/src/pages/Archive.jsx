@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Send, ArrowRight, MessageSquare, X, RotateCcw, Archive as ArchiveIcon } from "lucide-react";
+import { CheckCircle2, XCircle, Send, ArrowRight, MessageSquare, X, RotateCcw, Archive as ArchiveIcon, Copy, Download, Link as LinkIcon } from "lucide-react";
 
 const STATUSES = ["all","draft","review","approved","scheduled","published","archived"];
 const PLATFORMS = ["all","instagram","facebook","linkedin","google_business","blog","newsletter","whatsapp"];
@@ -26,6 +26,7 @@ export default function Archive() {
   const [detail, setDetail] = useState(null); // selected content
   const [allowed, setAllowed] = useState([]);
   const [events, setEvents] = useState([]);
+  const [links, setLinks] = useState([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -44,11 +45,55 @@ export default function Archive() {
     setDetail(c);
     setNote("");
     try {
-      const r = await api.get(`/generator/contents/${c.id}/events`);
-      setEvents(r.data.events || []);
-      setAllowed(r.data.allowed_transitions || []);
+      const [ev, lk] = await Promise.all([
+        api.get(`/generator/contents/${c.id}/events`),
+        api.get(`/approvals?content_id=${c.id}`),
+      ]);
+      setEvents(ev.data.events || []);
+      setAllowed(ev.data.allowed_transitions || []);
+      setLinks(lk.data || []);
     } catch {
-      setEvents([]); setAllowed([]);
+      setEvents([]); setAllowed([]); setLinks([]);
+    }
+  };
+
+  const createApprovalLink = async () => {
+    if (!detail) return;
+    setBusy(true);
+    try {
+      const r = await api.post("/approvals/create", {
+        generated_content_id: detail.id, expires_in_days: 14,
+      });
+      const publicUrl = `${window.location.origin}/approve/${r.data.token}`;
+      await navigator.clipboard?.writeText(publicUrl).catch(() => {});
+      toast.success("Freigabe-Link kopiert!");
+      setLinks([r.data, ...links]);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Link erstellen fehlgeschlagen");
+    } finally { setBusy(false); }
+  };
+
+  const copyLink = async (token) => {
+    const url = `${window.location.origin}/approve/${token}`;
+    await navigator.clipboard?.writeText(url).catch(() => {});
+    toast.success("Link kopiert");
+  };
+
+  const exportZip = async (creativeId) => {
+    try {
+      const r = await api.get(`/creatives/${creativeId}/export-zip`, { responseType: "blob" });
+      const blob = new Blob([r.data], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `socialfux-${creativeId.slice(0, 8)}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success("ZIP heruntergeladen");
+    } catch (err) {
+      toast.error("Kein zugehöriges Creative — erstelle zuerst eins im Creative Editor.");
     }
   };
 
@@ -149,8 +194,46 @@ export default function Archive() {
               </>
             )}
 
-            {/* Approval actions */}
+            {/* Approval link + Export */}
             <div className="border-t border-border pt-4">
+              <div className="fux-label mb-2">Freigabe-Link & Export</div>
+              <div className="flex flex-wrap gap-2 mb-3">
+                <button className="fux-btn-primary" onClick={createApprovalLink} disabled={busy} data-testid="create-approval-link">
+                  <LinkIcon size={14} /> Freigabe-Link erstellen
+                </button>
+                <a
+                  href={`${window.location.origin}/approve/${links[0]?.token || ''}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`fux-btn-ghost ${links.length === 0 ? 'opacity-50 pointer-events-none' : ''}`}
+                  data-testid="open-approval-link"
+                >
+                  Öffnen
+                </a>
+              </div>
+              {links.length > 0 && (
+                <ul className="space-y-1.5" data-testid="approval-links-list">
+                  {links.map((l) => {
+                    const url = `${window.location.origin}/approve/${l.token}`;
+                    return (
+                      <li key={l.id} className="flex items-center gap-2 text-xs border border-border p-2" data-testid={`link-${l.id}`}>
+                        <span className="fux-badge fux-badge-accent">{l.status}</span>
+                        <span className="mono truncate flex-1">{url}</span>
+                        <button onClick={() => copyLink(l.token)} className="fux-label hover:text-primary inline-flex items-center gap-1">
+                          <Copy size={12} /> copy
+                        </button>
+                        {l.customer_comment && (
+                          <span className="fux-label italic" title={l.customer_comment}>"…{l.customer_comment.slice(0, 30)}"</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
+
+            {/* Approval actions */}
+            <div className="border-t border-border pt-4 mt-4">
               <div className="fux-label mb-2">Approval actions</div>
               {allowed.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No transitions available from status "{detail.status}".</div>

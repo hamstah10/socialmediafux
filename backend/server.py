@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 # Import after env loaded
 from db import client  # noqa: E402
 from routers.auth_router import router as auth_router  # noqa: E402
+from routers.approvals_router import router as approvals_router  # noqa: E402
 from routers.customers_router import router as customers_router  # noqa: E402
 from routers.dashboard_router import router as dashboard_router  # noqa: E402
 from routers.creatives_router import router as creatives_router  # noqa: E402
@@ -82,6 +83,7 @@ api_router.include_router(news_items_router)
 api_router.include_router(generator_router)
 api_router.include_router(creatives_router)
 api_router.include_router(templates_router)
+api_router.include_router(approvals_router)
 
 app.include_router(api_router)
 

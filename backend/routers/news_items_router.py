@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from auth import get_current_user
 from db import base_fields, db, find_many, find_one, insert_one, update_one
-from models import ImportUrlRequest, NewsItemStatusUpdate
+from models import ImportUrlRequest, NewsItemCreate, NewsItemStatusUpdate, PreviewUrlRequest
 from services.scraper import fetch_url
 
 router = APIRouter(prefix="/news-items", tags=["news-items"])
@@ -59,6 +59,35 @@ async def import_url(payload: ImportUrlRequest, _=Depends(get_current_user)):
         "image_url": scraped.get("image_url"),
         "published_at": scraped.get("published_at"),
         "category": scraped.get("category"),
+        "status": "new",
+    }
+    await db["news_items"].insert_one(doc.copy())
+    doc.pop("_id", None)
+    return doc
+
+
+@router.post("/preview-url")
+async def preview_url(payload: PreviewUrlRequest, _=Depends(get_current_user)):
+    """Analyse a URL without saving — returns extracted metadata for editing."""
+    existing = await find_one("news_items", {"url": payload.url})
+    if existing:
+        return {"existing": True, "item": existing}
+    scraped = await fetch_url(payload.url)
+    if not scraped:
+        raise HTTPException(status_code=422, detail="Could not fetch or parse URL")
+    return {"existing": False, "item": scraped}
+
+
+@router.post("", status_code=status.HTTP_201_CREATED)
+async def create_item(payload: NewsItemCreate, _=Depends(get_current_user)):
+    """Save a (possibly user-edited) news item after a preview-url call."""
+    existing = await find_one("news_items", {"url": payload.url})
+    if existing:
+        return existing
+    doc = {
+        **base_fields(),
+        **payload.model_dump(),
+        "content_raw": payload.content_clean,
         "status": "new",
     }
     await db["news_items"].insert_one(doc.copy())

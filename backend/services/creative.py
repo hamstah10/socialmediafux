@@ -14,6 +14,8 @@ FORMAT_SIZES = {
     "facebook_landscape": (1200, 630),
     "linkedin_square": (1200, 1200),
     "google_business": (1200, 900),
+    "blog_thumbnail": (1200, 675),
+    "website_hero": (1600, 900),
 }
 
 

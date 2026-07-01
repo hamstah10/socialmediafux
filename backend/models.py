@@ -95,6 +95,21 @@ class ImportUrlRequest(BaseModel):
     news_source_id: Optional[str] = None
 
 
+class PreviewUrlRequest(BaseModel):
+    url: str
+
+
+class NewsItemCreate(BaseModel):
+    title: str
+    url: str
+    summary: str = ""
+    content_clean: str = ""
+    image_url: Optional[str] = None
+    published_at: Optional[str] = None
+    category: Optional[str] = None
+    news_source_id: Optional[str] = None
+
+
 # ---------- Generator ----------
 class GenerateContentRequest(BaseModel):
     customer_id: str
@@ -105,6 +120,16 @@ class GenerateContentRequest(BaseModel):
     cta: Optional[str] = None
     target_link: Optional[str] = None
     custom_prompt: Optional[str] = None
+
+
+class GenerateVariantsRequest(GenerateContentRequest):
+    """Generates 3 variants (technisch / verkaufsstark / kurz)."""
+    pass
+
+
+class SafeRewriteRequest(BaseModel):
+    text: str
+    customer_id: Optional[str] = None
 
 
 class HashtagRequest(BaseModel):
@@ -177,3 +202,14 @@ class TemplateUpdate(BaseModel):
 class TransitionRequest(BaseModel):
     status: str  # target status
     note: Optional[str] = None
+
+
+# ---------- Approval Links (public) ----------
+class ApprovalCreateRequest(BaseModel):
+    generated_content_id: Optional[str] = None
+    generated_creative_id: Optional[str] = None
+    expires_in_days: int = 14
+
+
+class ApprovalDecision(BaseModel):
+    comment: Optional[str] = None

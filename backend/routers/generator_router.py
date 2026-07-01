@@ -6,11 +6,13 @@ from db import base_fields, db, find_many, find_one, insert_one, update_one
 from models import (
     ComplianceRequest,
     GenerateContentRequest,
+    GenerateVariantsRequest,
     GeneratedContentUpdate,
     HashtagRequest,
+    SafeRewriteRequest,
     TransitionRequest,
 )
-from services.ai_service import generate_content
+from services.ai_service import generate_content, generate_variants, safe_rewrite
 from services.compliance import check_compliance
 from services.hashtag import generate_hashtags
 
@@ -80,6 +82,57 @@ async def hashtags(payload: HashtagRequest, _=Depends(get_current_user)):
             services = customer.get("services", []) or []
     tags = generate_hashtags(payload.text, services=services, platform=payload.platform, count=payload.count)
     return {"hashtags": tags}
+
+
+@router.post("/variants", status_code=status.HTTP_201_CREATED)
+async def variants(payload: GenerateVariantsRequest, _=Depends(get_current_user)):
+    """Generate 3 tone variants of the same content and save all as drafts."""
+    customer = await find_one("customers", {"id": payload.customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    news = None
+    if payload.news_item_id:
+        news = await find_one("news_items", {"id": payload.news_item_id})
+        if not news:
+            raise HTTPException(status_code=404, detail="News item not found")
+
+    results = await generate_variants(
+        customer=customer, news=news, platform=payload.platform,
+        cta=payload.cta, target_link=payload.target_link,
+        custom_prompt=payload.custom_prompt,
+    )
+    saved: list[dict] = []
+    for r in results:
+        doc = {
+            **base_fields(),
+            "customer_id": payload.customer_id,
+            "news_item_id": payload.news_item_id,
+            "platform": payload.platform,
+            "content_type": payload.content_type,
+            "title": r.get("title", ""),
+            "body": r.get("body", ""),
+            "hashtags": r.get("hashtags", []),
+            "cta": r.get("cta") or payload.cta or "",
+            "target_link": payload.target_link or "",
+            "tone": r.get("tone", "technisch"),
+            "meta_title": r.get("meta_title", ""),
+            "meta_description": r.get("meta_description", ""),
+            "status": "draft",
+        }
+        await insert_one("generated_contents", doc)
+        saved.append(doc)
+    if news:
+        await update_one("news_items", {"id": news["id"]}, {"status": "used"})
+    return {"variants": saved}
+
+
+@router.post("/safe-rewrite")
+async def safe_rewrite_endpoint(payload: SafeRewriteRequest, _=Depends(get_current_user)):
+    customer = None
+    if payload.customer_id:
+        customer = await find_one("customers", {"id": payload.customer_id})
+    rewritten = await safe_rewrite(payload.text, customer=customer)
+    return {"rewritten": rewritten}
 
 
 @router.post("/compliance-check")

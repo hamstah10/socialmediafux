@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { api } from "../lib/api";
-import { AlertTriangle, CheckCircle2, Hash, Save, ShieldAlert, Sparkles, Wand2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Hash, Save, ShieldAlert, ShieldCheck, Sparkles, Wand2, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 const PLATFORMS = ["instagram","facebook","linkedin","google_business","blog","newsletter","whatsapp"];
@@ -26,8 +26,10 @@ export default function ContentGenerator() {
   const [customPrompt, setCustomPrompt] = useState("");
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState(null);
+  const [variants, setVariants] = useState(null);
   const [compliance, setCompliance] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [rewriting, setRewriting] = useState(false);
 
   useEffect(() => {
     api.get("/customers").then((r) => {
@@ -47,6 +49,7 @@ export default function ContentGenerator() {
     if (!customerId) return toast.error("Kunde wählen");
     setGenerating(true);
     setResult(null);
+    setVariants(null);
     setCompliance(null);
     try {
       const r = await api.post("/generator/content", {
@@ -64,6 +67,41 @@ export default function ContentGenerator() {
     } catch (err) {
       toast.error(err?.response?.data?.detail || "Generation failed");
     } finally { setGenerating(false); }
+  };
+
+  const generate3 = async () => {
+    if (!customerId) return toast.error("Kunde wählen");
+    setGenerating(true);
+    setResult(null);
+    setVariants(null);
+    setCompliance(null);
+    try {
+      const r = await api.post("/generator/variants", {
+        customer_id: customerId,
+        news_item_id: newsId || null,
+        platform, tone, cta,
+        target_link: targetLink,
+        custom_prompt: customPrompt,
+      });
+      setVariants(r.data.variants);
+      toast.success("3 Varianten erstellt");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Generation failed");
+    } finally { setGenerating(false); }
+  };
+
+  const rewriteSafe = async () => {
+    if (!result) return;
+    setRewriting(true);
+    try {
+      const r = await api.post("/generator/safe-rewrite", {
+        text: result.body, customer_id: customerId,
+      });
+      setResult({ ...result, body: r.data.rewritten });
+      const cc = await api.post("/generator/compliance-check", { text: `${result.title}\n${r.data.rewritten}` });
+      setCompliance(cc.data);
+      toast.success("Text sicherer formuliert");
+    } catch { toast.error("Rewrite failed"); } finally { setRewriting(false); }
   };
 
   const regenerateHashtags = async () => {
@@ -155,17 +193,50 @@ export default function ContentGenerator() {
           >
             <Wand2 size={16} /> {generating ? "Generating…" : "Generate content"}
           </button>
+          <button
+            className="fux-btn-ghost w-full justify-center py-2"
+            onClick={generate3}
+            disabled={generating || !customerId}
+            data-testid="gen-variants"
+          >
+            <Layers size={14} /> 3 Varianten generieren
+          </button>
         </div>
 
         {/* Right: Result */}
         <div className="lg:col-span-2 space-y-4">
-          {!result && (
+          {!result && !variants && (
             <div className="fux-card min-h-64 flex flex-col items-center justify-center text-muted-foreground">
               <Sparkles size={32} className="opacity-40 mb-3" />
               <div className="fux-label">Awaiting generation</div>
               <p className="text-sm mt-2 max-w-md text-center">
-                Pick a customer, optionally a news item, choose platform and tone, then hit Generate.
+                Pick a customer, optionally a news item, choose platform and tone, then hit Generate or 3 Varianten.
               </p>
+            </div>
+          )}
+
+          {variants && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3" data-testid="variants-grid">
+              {variants.map((v) => (
+                <div key={v.id} className="fux-card" data-testid={`variant-${v.tone}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="fux-badge fux-badge-accent">{v.tone}</span>
+                    <span className="fux-badge">{v.platform}</span>
+                  </div>
+                  <h3 className="font-semibold text-sm line-clamp-2">{v.title}</h3>
+                  <p className="text-xs text-muted-foreground line-clamp-4 mt-2 whitespace-pre-line">{v.body}</p>
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {(v.hashtags || []).slice(0, 5).map((h) => <span key={h} className="fux-badge">{h}</span>)}
+                  </div>
+                  <button
+                    className="fux-btn-ghost w-full mt-3 justify-center"
+                    onClick={() => { setResult(v); setVariants(null); }}
+                    data-testid={`variant-open-${v.tone}`}
+                  >
+                    Öffnen & bearbeiten
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -196,12 +267,15 @@ export default function ContentGenerator() {
                     <span key={h} className="fux-badge fux-badge-accent">{h}</span>
                   ))}
                 </div>
-                <div className="flex items-center gap-3 mt-4">
+                <div className="flex items-center gap-3 mt-4 flex-wrap">
                   <button className="fux-btn-ghost" onClick={regenerateHashtags} data-testid="regen-hashtags">
                     <Hash size={14} /> Regenerate hashtags
                   </button>
                   <button className="fux-btn-ghost" onClick={runCompliance} data-testid="run-compliance">
                     <ShieldAlert size={14} /> Compliance check
+                  </button>
+                  <button className="fux-btn-ghost" onClick={rewriteSafe} disabled={rewriting} data-testid="safe-rewrite">
+                    <ShieldCheck size={14} /> {rewriting ? "Rewrite…" : "Sicherer formulieren"}
                   </button>
                   <button className="fux-btn-primary ml-auto" onClick={save} disabled={saving} data-testid="save-content">
                     <Save size={14} /> {saving ? "Saving…" : "Save & submit for review"}

@@ -4,12 +4,14 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 import { Toaster } from "sonner";
 
 import Login from "@/pages/Login";
+import Approval from "@/pages/Approval";
 import AppLayout from "@/layouts/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Customers from "@/pages/Customers";
 import CustomerDetail from "@/pages/CustomerDetail";
 import NewsSources from "@/pages/NewsSources";
 import NewsInbox from "@/pages/NewsInbox";
+import NewsImportUrl from "@/pages/NewsImportUrl";
 import ContentGenerator from "@/pages/ContentGenerator";
 import CreativeEditor from "@/pages/CreativeEditor";
 import Archive from "@/pages/Archive";
@@ -41,6 +43,7 @@ function App() {
         />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/approve/:token" element={<Approval />} />
           <Route element={<Protected><AppLayout /></Protected>}>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
@@ -48,6 +51,7 @@ function App() {
             <Route path="/customers/:id" element={<CustomerDetail />} />
             <Route path="/news-sources" element={<NewsSources />} />
             <Route path="/news" element={<NewsInbox />} />
+            <Route path="/news/import-url" element={<NewsImportUrl />} />
             <Route path="/content-generator" element={<ContentGenerator />} />
             <Route path="/creative-editor" element={<CreativeEditor />} />
             <Route path="/archive" element={<Archive />} />

@@ -1,5 +1,10 @@
 """Creatives endpoints."""
+import io
+import json
+import zipfile
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import StreamingResponse
 
 from auth import get_current_user
 from db import base_fields, find_many, find_one, insert_one, update_one, delete_one
@@ -100,4 +105,71 @@ async def export_png(creative_id: str, _=Depends(get_current_user)):
     raise HTTPException(
         status_code=status.HTTP_501_NOT_IMPLEMENTED,
         detail="PNG export not available. Please install Playwright.",
+    )
+
+
+@router.post("/{creative_id}/export-zip")
+async def export_zip(creative_id: str, _=Depends(get_current_user)):
+    """Return a ZIP with preview.html, caption.txt, hashtags.txt, post.json, readme."""
+    creative = await find_one("creatives", {"id": creative_id})
+    if not creative:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    content = None
+    if creative.get("generated_content_id"):
+        content = await find_one("generated_contents", {"id": creative["generated_content_id"]})
+    customer = await find_one("customers", {"id": creative["customer_id"]})
+
+    body = (content or {}).get("body", "")
+    title = (content or {}).get("title", creative.get("headline", ""))
+    hashtags = (content or {}).get("hashtags", []) or []
+    cta = (content or {}).get("cta") or creative.get("cta") or ""
+
+    caption = f"{title}\n\n{body}\n\n{cta}\n\n{' '.join(hashtags)}"
+
+    post_json = {
+        "customer": customer.get("name") if customer else None,
+        "platform": (content or {}).get("platform"),
+        "title": title,
+        "body": body,
+        "cta": cta,
+        "hashtags": hashtags,
+        "target_link": (content or {}).get("target_link"),
+        "creative": {
+            "format": creative.get("format"),
+            "headline": creative.get("headline"),
+            "subline": creative.get("subline"),
+            "cta": creative.get("cta"),
+        },
+    }
+
+    readme = (
+        "SocialFUX Export Paket\n"
+        "======================\n\n"
+        f"Kunde: {customer.get('name') if customer else '-'}\n"
+        f"Format: {creative.get('format')}\n"
+        f"Creative-ID: {creative.get('id')}\n\n"
+        "Dateien:\n"
+        " - preview.html   Vorschau des Creatives (Browser öffnen)\n"
+        " - caption.txt    Fertiger Post-Text mit Hashtags\n"
+        " - hashtags.txt   Hashtags einzeln\n"
+        " - post.json      Alle strukturierten Felder\n\n"
+        "Hinweis: PNG-Export wird auf dem VPS via Playwright aktiviert. "
+        "Bis dahin kann preview.html per Browser -> Screenshot exportiert werden."
+    )
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+        z.writestr("preview.html", creative.get("preview_html") or "")
+        z.writestr("caption.txt", caption)
+        z.writestr("hashtags.txt", "\n".join(hashtags))
+        z.writestr("post.json", json.dumps(post_json, indent=2, ensure_ascii=False))
+        z.writestr("readme.txt", readme)
+    buf.seek(0)
+
+    safe_name = "".join(ch for ch in (customer.get("slug") if customer else "creative") if ch.isalnum() or ch in "-_")
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={"Content-Disposition": f'attachment; filename="{safe_name}-{creative_id[:8]}.zip"'},
     )
