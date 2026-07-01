@@ -270,7 +270,21 @@ export default function Templates() {
               </form>
 
               <div className="col-span-12 md:col-span-7">
-                <div className="fux-label mb-2">// Live-Vorschau · {FORMAT_SIZES[form.format]?.w}×{FORMAT_SIZES[form.format]?.h}</div>
+                <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                  <div className="fux-label">// Live-Vorschau · {FORMAT_SIZES[form.format]?.w}×{FORMAT_SIZES[form.format]?.h}</div>
+                  <div className="flex items-center gap-2">
+                    <label className="fux-label">Kunde</label>
+                    <select
+                      className="fux-input max-w-[200px]"
+                      value={previewCustomerId}
+                      onChange={(e) => setPreviewCustomerId(e.target.value)}
+                      data-testid="preview-customer-select-modal"
+                    >
+                      <option value="">Demo-Branding</option>
+                      {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                </div>
                 <CreativePreview
                   customer={previewCustomer}
                   template={templatePreview}
