@@ -136,8 +136,23 @@ async def seed_templates() -> None:
     logger.info("Seeded %d templates", len(DEFAULT_TEMPLATES))
 
 
+async def cleanup_orphan_news_items() -> None:
+    """Delete news items whose news_source_id references a deleted source.
+
+    Runs on every startup. Manual URL imports (news_source_id is None)
+    are always kept.
+    """
+    valid_ids = {s["id"] async for s in db["news_sources"].find({}, {"id": 1})}
+    r = await db["news_items"].delete_many({
+        "news_source_id": {"$nin": list(valid_ids) + [None]},
+    })
+    if r.deleted_count:
+        logger.info("Cleaned up %d orphan news items", r.deleted_count)
+
+
 async def run_seed() -> None:
     await seed_admin()
     await seed_sources()
     await seed_demo_customer()
     await seed_templates()
+    await cleanup_orphan_news_items()

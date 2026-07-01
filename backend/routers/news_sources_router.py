@@ -39,10 +39,13 @@ async def update_source(source_id: str, payload: NewsSourceUpdate, _=Depends(get
 
 @router.delete("/{source_id}")
 async def remove_source(source_id: str, _=Depends(get_current_user)):
-    ok = await delete_one("news_sources", {"id": source_id})
-    if not ok:
+    source = await find_one("news_sources", {"id": source_id})
+    if not source:
         raise HTTPException(status_code=404, detail="Source not found")
-    return {"ok": True}
+    # Cascade: remove all news items belonging to this source
+    items_result = await db["news_items"].delete_many({"news_source_id": source_id})
+    ok = await delete_one("news_sources", {"id": source_id})
+    return {"ok": ok, "deleted_news_items": items_result.deleted_count}
 
 
 @router.post("/{source_id}/fetch")
