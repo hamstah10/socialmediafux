@@ -29,6 +29,7 @@ export default function Archive() {
   const [links, setLinks] = useState([]);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [creative, setCreative] = useState(null);
 
   const load = () => {
     const q = new URLSearchParams();
@@ -44,16 +45,19 @@ export default function Archive() {
   const openDetail = async (c) => {
     setDetail(c);
     setNote("");
+    setCreative(null);
     try {
-      const [ev, lk] = await Promise.all([
+      const [ev, lk, cr] = await Promise.all([
         api.get(`/generator/contents/${c.id}/events`),
         api.get(`/approvals?content_id=${c.id}`),
+        api.get(`/creatives?generated_content_id=${c.id}`),
       ]);
       setEvents(ev.data.events || []);
       setAllowed(ev.data.allowed_transitions || []);
       setLinks(lk.data || []);
+      setCreative(cr.data?.[0] || null);
     } catch {
-      setEvents([]); setAllowed([]); setLinks([]);
+      setEvents([]); setAllowed([]); setLinks([]); setCreative(null);
     }
   };
 
@@ -206,17 +210,31 @@ export default function Archive() {
               <span className="fux-badge fux-badge-accent" data-testid="detail-status">{detail.status}</span>
             </div>
 
-            <div className="fux-label mb-1">Text</div>
-            <p className="text-sm whitespace-pre-line border border-border p-3 mb-4">{detail.body}</p>
-
-            {(detail.hashtags || []).length > 0 && (
-              <>
-                <div className="fux-label mb-1">Hashtags</div>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {detail.hashtags.map((h) => <span key={h} className="fux-badge fux-badge-accent">{h}</span>)}
-                </div>
-              </>
-            )}
+            <div className="fux-label mb-2">Fertige Post-Vorschau</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                {creative?.preview_html ? (
+                  <div
+                    className="border border-border overflow-hidden"
+                    data-testid="post-preview-creative"
+                    dangerouslySetInnerHTML={{ __html: creative.preview_html }}
+                  />
+                ) : (
+                  <div className="border border-border p-4 text-sm text-muted-foreground flex items-center justify-center min-h-40 text-center">
+                    Kein Creative verknüpft — im Creative Editor eins für diesen Content erstellen.
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="fux-label mb-1">Text</div>
+                <p className="text-sm whitespace-pre-line border border-border p-3 mb-3">{detail.body}</p>
+                {(detail.hashtags || []).length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {detail.hashtags.map((h) => <span key={h} className="fux-badge fux-badge-accent">{h}</span>)}
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Approval link + Export */}
             <div className="border-t border-border pt-4">

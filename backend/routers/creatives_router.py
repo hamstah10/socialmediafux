@@ -20,10 +20,13 @@ UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/app/uploads"))
 
 
 @router.get("")
-async def list_creatives(customer_id: str | None = None, _=Depends(get_current_user)):
+async def list_creatives(customer_id: str | None = None, generated_content_id: str | None = None,
+                          _=Depends(get_current_user)):
     q: dict = {}
     if customer_id:
         q["customer_id"] = customer_id
+    if generated_content_id:
+        q["generated_content_id"] = generated_content_id
     return await find_many("creatives", q)
 
 
