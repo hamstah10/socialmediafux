@@ -79,7 +79,7 @@ async def update_creative(creative_id: str, payload: CreativeUpdate, _=Depends(g
     merged = {**current, **update}
     # Rebuild preview if visible fields changed
     if any(k in update for k in ("headline", "subline", "cta", "format", "design_template_id",
-                                    "background_image_path", "logo_override_path")):
+                                    "background_image_path", "logo_override_path", "layers")):
         customer = await find_one("customers", {"id": merged["customer_id"]})
         template = None
         if merged.get("design_template_id"):
@@ -92,6 +92,7 @@ async def update_creative(creative_id: str, payload: CreativeUpdate, _=Depends(g
                 cta=merged.get("cta", ""), logo_url=logo_url,
                 background_image_url=merged.get("background_image_path") or "",
                 template=template,
+                layers=merged.get("layers"),
             )
             update["preview_html"] = merged["preview_html"]
     return await update_one("creatives", {"id": creative_id}, update)

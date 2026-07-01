@@ -164,6 +164,7 @@ class CreativeCreate(BaseModel):
     cta: Optional[str] = ""
     background_image_path: Optional[str] = None
     logo_override_path: Optional[str] = None
+    layers: Optional[List[dict]] = None
 
 
 class CreativeUpdate(BaseModel):
@@ -176,6 +177,7 @@ class CreativeUpdate(BaseModel):
     preview_html: Optional[str] = None
     background_image_path: Optional[str] = None
     logo_override_path: Optional[str] = None
+    layers: Optional[List[dict]] = None
 
 
 # ---------- Template ----------

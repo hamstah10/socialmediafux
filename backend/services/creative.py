@@ -19,6 +19,47 @@ FORMAT_SIZES = {
 }
 
 
+def _render_layers(layers: list[dict]) -> str:
+    """Absolute-positioned layers rendered on top of the base composition."""
+    out: list[str] = []
+    for layer in sorted(layers or [], key=lambda x: x.get("z", 0)):
+        x = float(layer.get("x", 0))
+        y = float(layer.get("y", 0))
+        w = float(layer.get("w", 20))
+        h = float(layer.get("h", 10))
+        z = int(layer.get("z", 1))
+        opacity = float(layer.get("opacity", 1))
+        radius = float(layer.get("radius", 0))
+        common = (f"position:absolute; left:{x}%; top:{y}%; width:{w}%; height:{h}%; "
+                  f"z-index:{z}; opacity:{opacity}; border-radius:{radius}px; overflow:hidden;")
+        t = layer.get("type", "text")
+        if t == "text":
+            fs = float(layer.get("fontSize", 4))  # in vw of canvas
+            fw = int(layer.get("fontWeight", 700))
+            color = escape(layer.get("color", "#F5F7FA"))
+            bg = layer.get("bg") or "transparent"
+            align = escape(layer.get("align", "left"))
+            text = escape(layer.get("text", ""))
+            transform = "uppercase" if layer.get("upper") else "none"
+            out.append(
+                f'<div style="{common} background:{escape(bg)}; color:{color}; '
+                f'font-size:{fs}cqw; font-weight:{fw}; text-transform:{transform}; '
+                f'display:flex; align-items:center; justify-content:{align}; '
+                f'padding:0.5em 0.8em; line-height:1.1; letter-spacing:-0.01em;">{text}</div>'
+            )
+        elif t == "image":
+            src = escape(layer.get("src", ""))
+            fit = escape(layer.get("fit", "cover"))
+            out.append(
+                f'<div style="{common}"><img src="{src}" alt="" '
+                f'style="width:100%; height:100%; object-fit:{fit};"/></div>'
+            )
+        elif t == "box":
+            bg = escape(layer.get("bg", "#B4E600"))
+            out.append(f'<div style="{common} background:{bg};"></div>')
+    return "".join(out)
+
+
 def _background_style(bg_type: str, primary: str) -> str:
     if bg_type == "grid":
         return (
@@ -47,7 +88,8 @@ def _background_style(bg_type: str, primary: str) -> str:
 def build_preview_html(*, customer: dict, format: str, headline: str,
                        subline: str, cta: str, logo_url: str = "",
                        background_image_url: str = "",
-                       template: Optional[dict] = None) -> str:
+                       template: Optional[dict] = None,
+                       layers: Optional[list[dict]] = None) -> str:
     template = template or {}
     config = template.get("config") or {}
 
@@ -73,6 +115,20 @@ def build_preview_html(*, customer: dict, format: str, headline: str,
         if logo_url
         else f'<div style="font-weight:800; text-transform:uppercase; letter-spacing:.1em;">{escape(name)}</div>'
     )
+
+    # Layers-only mode: if user has designed a fully custom composition via
+    # the layout editor, skip the default badge/headline/CTA scaffolding.
+    if layers:
+        return f"""
+<div class="fux-creative" style="
+    width:100%; aspect-ratio:{w}/{h};
+    {bg_css}
+    color:#F5F7FA; position:relative;
+    font-family:'Rajdhani','IBM Plex Sans',sans-serif; overflow:hidden;
+    container-type: inline-size;">
+    {_render_layers(layers)}
+</div>
+""".strip()
 
     return f"""
 <div class="fux-creative" style="
