@@ -75,7 +75,7 @@ async def settings() -> dict:
         "version": "0.1.0",
         "domain": os.environ.get("DOMAIN", "social.tuningfux.de"),
         "upload_dir": os.environ.get("UPLOAD_DIR", "/app/uploads"),
-        "llm_configured": bool(os.environ.get("EMERGENT_LLM_KEY")),
+        "llm_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
     }
 
 

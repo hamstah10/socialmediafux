@@ -1,6 +1,6 @@
 """AI content generation service.
 
-Uses Claude Sonnet 4.5 via emergentintegrations. Falls back to a deterministic
+Uses Claude via the official Anthropic SDK. Falls back to a deterministic
 mock generator when no API key is present or on API failure — MVP guarantee
 per the brief: the app must always produce usable copy.
 """
@@ -11,15 +11,13 @@ import re
 from typing import Optional
 
 try:
-    from emergentintegrations.llm.chat import LlmChat, UserMessage
+    import anthropic
 except ImportError:
-    LlmChat = None
-    UserMessage = None
+    anthropic = None
 
 logger = logging.getLogger(__name__)
 
-MODEL_PROVIDER = "anthropic"
-MODEL_NAME = "claude-sonnet-4-5-20250929"
+MODEL_NAME = "claude-opus-4-8"
 
 
 PLATFORM_HINTS = {
@@ -110,29 +108,37 @@ def _extract_json(text: str) -> Optional[dict]:
         return None
 
 
+def _get_client() -> Optional["anthropic.Anthropic"]:
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key or anthropic is None:
+        return None
+    return anthropic.Anthropic(api_key=api_key)
+
+
 async def generate_content(customer: dict, news: Optional[dict], platform: str,
                            tone: str, cta: Optional[str], target_link: Optional[str],
                            custom_prompt: Optional[str] = None) -> dict:
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key or LlmChat is None:
-        logger.warning("No EMERGENT_LLM_KEY or emergentintegrations unavailable, using mock generator")
+    client = _get_client()
+    if client is None:
+        logger.warning("No ANTHROPIC_API_KEY or anthropic package unavailable, using mock generator")
         return _mock_generate(customer, news, platform, tone, cta, target_link)
 
     try:
         prompt = _build_prompt(customer, news, platform, tone, cta, target_link, custom_prompt)
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"gen-{customer.get('id', 'x')}",
-            system_message=(
+        response = client.messages.create(
+            model=MODEL_NAME,
+            max_tokens=4096,
+            thinking={"type": "adaptive"},
+            system=(
                 "Du bist ein deutscher Marketing-Experte für Automotive-, Chiptuning- "
                 "und Werkstatt-Kunden. Du schreibst rechtssichere, professionelle "
                 "Social-Media-Texte. Du verwendest niemals absolute Aussagen wie "
                 "'100% legal', 'TÜV garantiert' oder 'garantiert mehr Leistung'."
             ),
-        ).with_model(MODEL_PROVIDER, MODEL_NAME)
-
-        response = await chat.send_message(UserMessage(text=prompt))
-        parsed = _extract_json(response if isinstance(response, str) else str(response))
+            messages=[{"role": "user", "content": prompt}],
+        )
+        text = next((b.text for b in response.content if b.type == "text"), "")
+        parsed = _extract_json(text)
         if not parsed:
             logger.warning("AI response not parseable, falling back to mock")
             return _mock_generate(customer, news, platform, tone, cta, target_link)
@@ -188,8 +194,8 @@ async def generate_variants(customer: dict, news: Optional[dict], platform: str,
 
 async def safe_rewrite(text: str, customer: Optional[dict] = None) -> str:
     """Rewrite riskante Aussagen zu sicheren Formulierungen via Claude."""
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key or LlmChat is None:
+    client = _get_client()
+    if client is None:
         # Basic keyword replacement fallback
         replacements = {
             "100% legal": "ausschließlich für Motorsport, Export oder Offroad",
@@ -203,10 +209,11 @@ async def safe_rewrite(text: str, customer: Optional[dict] = None) -> str:
             out = re.sub(re.escape(k), v, out, flags=re.IGNORECASE)
         return out
     try:
-        chat = LlmChat(
-            api_key=api_key,
-            session_id=f"rewrite-{customer.get('id', 'x') if customer else 'x'}",
-            system_message=(
+        response = client.messages.create(
+            model=MODEL_NAME,
+            max_tokens=2048,
+            thinking={"type": "adaptive"},
+            system=(
                 "Du bist ein deutscher Rechts- und Marketing-Experte für Automotive-/"
                 "Chiptuning-Content. Formuliere den gegebenen Text so um, dass er "
                 "keine juristisch riskanten Aussagen enthält. Verboten: '100% legal', "
@@ -216,9 +223,10 @@ async def safe_rewrite(text: str, customer: Optional[dict] = None) -> str:
                 "'realistische Leistungssteigerung'. Behalte Botschaft, Länge und Ton bei. "
                 "Antworte AUSSCHLIESSLICH mit dem neuen Text, ohne Erklärung, ohne Markdown."
             ),
-        ).with_model(MODEL_PROVIDER, MODEL_NAME)
-        response = await chat.send_message(UserMessage(text=text))
-        return (response if isinstance(response, str) else str(response)).strip()
+            messages=[{"role": "user", "content": text}],
+        )
+        result = next((b.text for b in response.content if b.type == "text"), "")
+        return result.strip()
     except Exception as e:
         logger.warning("safe_rewrite failed: %s", e)
         return text
