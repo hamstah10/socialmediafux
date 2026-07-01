@@ -1,10 +1,44 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, resolveUpload } from "../lib/api";
 import { toast } from "sonner";
-import { Save, Download } from "lucide-react";
+import { Image as ImageIcon, Save, Download, Trash2 } from "lucide-react";
 import CreativePreview, { FORMAT_SIZES } from "../components/CreativePreview";
+import MediaPicker from "../components/MediaPicker";
 
 const FORMATS = Object.entries(FORMAT_SIZES).map(([key, v]) => ({ key, ...v }));
+
+const MediaSlot = ({ label, asset, fallbackUrl, fallbackLabel, onPick, onClear, testid }) => {
+  const src = asset ? resolveUpload(asset.file_path) : fallbackUrl;
+  return (
+    <div className="border border-border p-3" data-testid={`slot-${testid}`}>
+      <div className="fux-label mb-2">{label}</div>
+      <div className="flex items-center gap-3">
+        {src ? (
+          <img src={src} alt="" className="w-14 h-14 object-cover border border-border bg-secondary" />
+        ) : (
+          <div className="w-14 h-14 border border-border bg-secondary flex items-center justify-center text-muted-foreground">
+            <ImageIcon size={18} />
+          </div>
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="text-xs truncate">
+            {asset ? asset.original_name : fallbackLabel || "Kein Asset"}
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <button type="button" onClick={onPick} className="fux-label hover:text-primary" data-testid={`pick-${testid}`}>
+              {asset ? "ändern" : "auswählen"}
+            </button>
+            {asset && (
+              <button type="button" onClick={onClear} className="fux-label hover:text-destructive inline-flex items-center gap-1" data-testid={`clear-${testid}`}>
+                <Trash2 size={11} /> entfernen
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function CreativeEditor() {
   const [customers, setCustomers] = useState([]);
@@ -17,6 +51,9 @@ export default function CreativeEditor() {
   const [headline, setHeadline] = useState("Neues ECU Update verfügbar");
   const [subline, setSubline] = useState("Mehr Drehmoment. Sauberere Lastwechsel. Kundenspezifisch abgestimmt.");
   const [cta, setCta] = useState("Jetzt Termin anfragen");
+  const [backgroundAsset, setBackgroundAsset] = useState(null);
+  const [logoAsset, setLogoAsset] = useState(null);
+  const [pickerMode, setPickerMode] = useState(null); // "background" | "logo" | null
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -37,7 +74,9 @@ export default function CreativeEditor() {
   }, [template]);
 
   const fmt = FORMATS.find((f) => f.key === format) || FORMATS[0];
-  const logo = customer?.logo_path ? resolveUpload(customer.logo_path) : "";
+  const customerLogo = customer?.logo_path ? resolveUpload(customer.logo_path) : "";
+  const logo = logoAsset ? resolveUpload(logoAsset.file_path) : customerLogo;
+  const backgroundImageUrl = backgroundAsset ? resolveUpload(backgroundAsset.file_path) : "";
 
   const applyContent = (id) => {
     setContentId(id);
@@ -58,6 +97,8 @@ export default function CreativeEditor() {
         generated_content_id: contentId || null,
         design_template_id: templateId || null,
         format, headline, subline, cta,
+        background_image_path: backgroundAsset?.file_path || null,
+        logo_override_path: logoAsset?.file_path || null,
       });
       toast.success("Creative saved");
     } catch { toast.error("Save failed"); } finally { setSaving(false); }
@@ -118,9 +159,32 @@ export default function CreativeEditor() {
               subline={subline}
               cta={cta}
               logoUrl={logo}
+              backgroundImageUrl={backgroundImageUrl}
               maxWidth={640}
               testid="creative-preview"
             />
+          </div>
+
+          <div className="fux-card mt-4 space-y-3" data-testid="media-controls">
+            <div className="fux-label">Media</div>
+            <div className="grid grid-cols-2 gap-3">
+              <MediaSlot
+                label="Background"
+                asset={backgroundAsset}
+                onPick={() => setPickerMode("background")}
+                onClear={() => setBackgroundAsset(null)}
+                testid="bg"
+              />
+              <MediaSlot
+                label="Logo override"
+                asset={logoAsset}
+                fallbackUrl={customerLogo}
+                fallbackLabel="Kundenlogo"
+                onPick={() => setPickerMode("logo")}
+                onClear={() => setLogoAsset(null)}
+                testid="logo"
+              />
+            </div>
           </div>
         </div>
 
@@ -153,6 +217,19 @@ export default function CreativeEditor() {
           </div>
         </div>
       </div>
+
+      <MediaPicker
+        open={pickerMode !== null}
+        onClose={() => setPickerMode(null)}
+        customerId={customerId}
+        defaultCategory={pickerMode === "logo" ? "Logo" : ""}
+        onPick={(asset) => {
+          if (pickerMode === "background") setBackgroundAsset(asset);
+          else if (pickerMode === "logo") setLogoAsset(asset);
+          setPickerMode(null);
+          toast.success(`${pickerMode === "background" ? "Background" : "Logo"} gesetzt`);
+        }}
+      />
     </div>
   );
 }

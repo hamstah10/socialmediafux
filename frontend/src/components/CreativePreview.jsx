@@ -49,6 +49,7 @@ export default function CreativePreview({
   subline,
   cta,
   logoUrl,
+  backgroundImageUrl,
   maxWidth = 640,
   testid,
 }) {
@@ -60,6 +61,16 @@ export default function CreativePreview({
   const bgType = template?.background_type || "grid";
   const website = customer?.website || "";
   const name = customer?.name || "";
+
+  const patternCss = backgroundCss(bgType, primary);
+  const bgImageCss = backgroundImageUrl
+    ? {
+        backgroundImage: `linear-gradient(rgba(8,13,26,0.55), rgba(8,13,26,0.75)), url("${backgroundImageUrl}")`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        background: undefined,
+      }
+    : {};
 
   return (
     <div style={{ maxWidth }} className="mx-auto">
@@ -73,7 +84,8 @@ export default function CreativePreview({
           fontFamily: "'Rajdhani','IBM Plex Sans',sans-serif",
           overflow: "hidden",
           border: "1px solid #232D42",
-          ...backgroundCss(bgType, primary),
+          ...patternCss,
+          ...bgImageCss,
         }}
       >
         <div style={{ position: "absolute", inset: 0, padding: "8%", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>

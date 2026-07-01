@@ -46,6 +46,7 @@ def _background_style(bg_type: str, primary: str) -> str:
 
 def build_preview_html(*, customer: dict, format: str, headline: str,
                        subline: str, cta: str, logo_url: str = "",
+                       background_image_url: str = "",
                        template: Optional[dict] = None) -> str:
     template = template or {}
     config = template.get("config") or {}
@@ -58,7 +59,14 @@ def build_preview_html(*, customer: dict, format: str, headline: str,
     bg_type = template.get("background_type") or "grid"
 
     w, h = FORMAT_SIZES.get(format, (1080, 1080))
-    bg_css = _background_style(bg_type, primary)
+    if background_image_url:
+        bg_css = (
+            f"background:{primary};"
+            f"background-image:linear-gradient(rgba(8,13,26,0.55),rgba(8,13,26,0.75)),url('{background_image_url}');"
+            "background-size:cover; background-position:center;"
+        )
+    else:
+        bg_css = _background_style(bg_type, primary)
 
     logo_html = (
         f'<img src="{escape(logo_url)}" alt="" style="max-height:56px; max-width:180px; object-fit:contain;" />'

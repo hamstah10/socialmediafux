@@ -162,6 +162,8 @@ class CreativeCreate(BaseModel):
     headline: str
     subline: Optional[str] = ""
     cta: Optional[str] = ""
+    background_image_path: Optional[str] = None
+    logo_override_path: Optional[str] = None
 
 
 class CreativeUpdate(BaseModel):
@@ -172,6 +174,8 @@ class CreativeUpdate(BaseModel):
     format: Optional[str] = None
     status: Optional[str] = None
     preview_html: Optional[str] = None
+    background_image_path: Optional[str] = None
+    logo_override_path: Optional[str] = None
 
 
 # ---------- Template ----------
