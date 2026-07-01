@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 # - We add generic tuning-industry RSS feeds (tuningblog.eu, Auto Motor & Sport)
 #   so the fetch action works out-of-the-box.
 DEFAULT_SOURCES = [
-    {"name": "Autotuner", "url": "https://www.autotuner.com/blogs/news",
-     "rss_url": "https://www.autotuner.com/blogs/news.atom",
+    {"name": "Autotuner", "url": "https://www.autotuner.com/de/blogs/neuigkeiten",
+     "rss_url": "https://www.autotuner.com/de/blogs/neuigkeiten.atom",
      "source_type": "rss", "scraper_key": "autotuner"},
     {"name": "Magic Motorsport", "url": "https://www.magicmotorsport.com/en/news",
      "rss_url": None, "source_type": "website", "scraper_key": "magicmotorsport"},
