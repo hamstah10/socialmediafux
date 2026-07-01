@@ -96,6 +96,11 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 (UPLOAD_DIR / "logos").mkdir(parents=True, exist_ok=True)
 (UPLOAD_DIR / "creatives").mkdir(parents=True, exist_ok=True)
 (UPLOAD_DIR / "news-images").mkdir(parents=True, exist_ok=True)
+(UPLOAD_DIR / "media").mkdir(parents=True, exist_ok=True)
+# Mount under both paths:
+#  - /api/uploads   → served via Kubernetes ingress (Emergent)
+#  - /uploads       → served directly on VPS by Nginx (see scripts/deploy_notes.md)
+app.mount("/api/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads_api")
 app.mount("/uploads", StaticFiles(directory=str(UPLOAD_DIR)), name="uploads")
 
 

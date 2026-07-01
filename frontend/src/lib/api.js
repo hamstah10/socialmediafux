@@ -26,4 +26,12 @@ api.interceptors.response.use(
   },
 );
 
-export const resolveUpload = (p) => (p ? `${UPLOADS_BASE}${p}` : "");
+// Uploaded assets are served through the /api/uploads mount so they pass the
+// Kubernetes ingress correctly. Backend stores paths as `/uploads/...` for
+// VPS/Nginx compatibility; we rewrite to `/api/uploads/...` on the client.
+export const resolveUpload = (p) => {
+  if (!p) return "";
+  if (p.startsWith("http")) return p;
+  const path = p.startsWith("/uploads/") ? `/api${p}` : p;
+  return `${UPLOADS_BASE}${path}`;
+};

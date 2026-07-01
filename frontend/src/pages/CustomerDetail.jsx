@@ -39,15 +39,26 @@ export default function CustomerDetail() {
     } finally { setBusy(false); }
   };
 
+  const [logoCacheBust, setLogoCacheBust] = useState(0);
+
   const uploadLogo = async (file) => {
+    if (!file) return;
+    if (file.size > 10 * 1024 * 1024) return toast.error("Datei > 10 MB");
+    const allowed = ["image/png", "image/jpeg", "image/webp", "image/svg+xml", "image/gif"];
+    if (file.type && !allowed.includes(file.type)) {
+      return toast.error(`Dateityp ${file.type} nicht erlaubt (nur PNG/JPG/WEBP/SVG)`);
+    }
     const fd = new FormData();
     fd.append("file", file);
     setBusy(true);
     try {
       const r = await api.post(`/customers/${id}/logo`, fd);
       setCustomer(r.data);
-      toast.success("Logo uploaded");
-    } catch { toast.error("Upload failed"); } finally { setBusy(false); }
+      setLogoCacheBust(Date.now());
+      toast.success(`Logo hochgeladen (${(file.size / 1024).toFixed(1)} KB)`);
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || `Upload fehlgeschlagen (${err?.response?.status || "?"})`);
+    } finally { setBusy(false); }
   };
 
   if (!customer) return <div className="fux-label">Loading…</div>;
@@ -63,7 +74,12 @@ export default function CustomerDetail() {
       <header className="fux-card flex items-center gap-6">
         <div className="w-20 h-20 border border-border flex items-center justify-center" style={{ background: customer.primary_color }}>
           {customer.logo_path ? (
-            <img src={resolveUpload(customer.logo_path)} className="max-w-full max-h-full object-contain" alt="" />
+            <img
+              src={`${resolveUpload(customer.logo_path)}${logoCacheBust ? `?t=${logoCacheBust}` : ""}`}
+              className="max-w-full max-h-full object-contain"
+              alt=""
+              data-testid="header-logo-img"
+            />
           ) : (
             <div className="fux-heading text-2xl text-white">{customer.name.slice(0, 2).toUpperCase()}</div>
           )}
@@ -121,19 +137,57 @@ export default function CustomerDetail() {
       )}
 
       {tab === "branding" && (
-        <div className="fux-card grid grid-cols-2 gap-4" data-testid="tab-branding-content">
-          <div><label className="fux-label block mb-1.5">Primary</label>
-            <input className="fux-input" type="color" value={customer.primary_color} onChange={(e) => set("primary_color", e.target.value)} /></div>
-          <div><label className="fux-label block mb-1.5">Secondary</label>
-            <input className="fux-input" type="color" value={customer.secondary_color} onChange={(e) => set("secondary_color", e.target.value)} /></div>
-          <div><label className="fux-label block mb-1.5">Accent</label>
-            <input className="fux-input" type="color" value={customer.accent_color} onChange={(e) => set("accent_color", e.target.value)} /></div>
-          <div className="col-span-2">
-            <label className="fux-label block mb-1.5">Logo</label>
-            <input ref={fileRef} type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])} className="hidden" data-testid="logo-file-input" />
-            <button className="fux-btn-ghost" onClick={() => fileRef.current?.click()} data-testid="upload-logo-btn">
-              <Upload size={14} /> Upload logo
-            </button>
+        <div className="fux-card space-y-5" data-testid="tab-branding-content">
+          <div className="grid grid-cols-3 gap-4">
+            <div><label className="fux-label block mb-1.5">Primary</label>
+              <input className="fux-input h-10" type="color" value={customer.primary_color} onChange={(e) => set("primary_color", e.target.value)} /></div>
+            <div><label className="fux-label block mb-1.5">Secondary</label>
+              <input className="fux-input h-10" type="color" value={customer.secondary_color} onChange={(e) => set("secondary_color", e.target.value)} /></div>
+            <div><label className="fux-label block mb-1.5">Accent</label>
+              <input className="fux-input h-10" type="color" value={customer.accent_color} onChange={(e) => set("accent_color", e.target.value)} /></div>
+          </div>
+
+          <div className="border-t border-border pt-4">
+            <label className="fux-label block mb-2">Logo (PNG/JPG/WEBP/SVG · max 10 MB)</label>
+            <div className="flex items-center gap-4">
+              <div
+                className="w-32 h-32 border border-border flex items-center justify-center bg-secondary shrink-0"
+                data-testid="logo-preview-box"
+              >
+                {customer.logo_path ? (
+                  <img
+                    src={`${resolveUpload(customer.logo_path)}${logoCacheBust ? `?t=${logoCacheBust}` : ""}`}
+                    alt=""
+                    className="max-w-full max-h-full object-contain"
+                    data-testid="logo-preview-img"
+                    onError={(e) => { e.target.style.display = "none"; }}
+                  />
+                ) : (
+                  <div className="fux-label text-center px-2">Kein Logo</div>
+                )}
+              </div>
+              <div className="flex-1">
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif"
+                  onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
+                  className="hidden"
+                  data-testid="logo-file-input"
+                />
+                <button
+                  className="fux-btn-primary"
+                  onClick={() => fileRef.current?.click()}
+                  disabled={busy}
+                  data-testid="upload-logo-btn"
+                >
+                  <Upload size={14} /> {busy ? "Lade hoch…" : (customer.logo_path ? "Logo ersetzen" : "Logo hochladen")}
+                </button>
+                {customer.logo_path && (
+                  <div className="fux-label mt-2 mono text-[10px] break-all">{customer.logo_path}</div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}
