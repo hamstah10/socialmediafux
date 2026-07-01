@@ -61,12 +61,12 @@ export default function Login() {
       {/* Right: form */}
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="fux-label mb-2">// ACCESS TERMINAL</div>
-          <h2 className="fux-heading text-3xl mb-8">Login</h2>
+          <div className="fux-label mb-2">// ZUGANG</div>
+          <h2 className="fux-heading text-3xl mb-8">Anmelden</h2>
 
           <form onSubmit={submit} className="fux-card space-y-4" data-testid="login-form">
             <div>
-              <label className="fux-label block mb-1.5">Email</label>
+              <label className="fux-label block mb-1.5">E-Mail</label>
               <input
                 data-testid="login-email"
                 className="fux-input"
@@ -78,7 +78,7 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className="fux-label block mb-1.5">Password</label>
+              <label className="fux-label block mb-1.5">Passwort</label>
               <input
                 data-testid="login-password"
                 className="fux-input"
@@ -100,12 +100,12 @@ export default function Login() {
               disabled={loading}
               className="fux-btn-primary w-full justify-center py-3"
             >
-              {loading ? "Signing in..." : "Enter cockpit"}
+              {loading ? "Anmeldung…" : "Ins Cockpit"}
             </button>
           </form>
 
           <div className="mt-6 fux-label text-center">
-            Default admin: admin@socialfux.local / admin123456
+            Standard-Admin: admin@socialfux.local / admin123456
           </div>
         </div>
       </div>

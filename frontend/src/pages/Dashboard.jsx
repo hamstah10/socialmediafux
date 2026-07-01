@@ -32,7 +32,7 @@ const QuickAction = ({ to, icon: Icon, label, testid }) => (
     className="fux-card hover:border-primary transition-colors flex items-center justify-between group"
   >
     <div>
-      <div className="fux-label">Quick action</div>
+      <div className="fux-label">Schnellaktion</div>
       <div className="fux-heading text-lg mt-1">{label}</div>
     </div>
     <Icon size={22} className="text-muted-foreground group-hover:text-primary transition-colors" strokeWidth={1.75} />
@@ -80,44 +80,44 @@ export default function Dashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <div className="fux-label" data-testid="dashboard-loading">Loading telemetry…</div>;
-  if (!stats) return <div className="fux-label">No data</div>;
+  if (loading) return <div className="fux-label" data-testid="dashboard-loading">Lade Telemetrie…</div>;
+  if (!stats) return <div className="fux-label">Keine Daten</div>;
 
   return (
     <div className="space-y-8" data-testid="dashboard-page">
       <header className="flex items-end justify-between">
         <div>
           <div className="fux-label">/ dashboard</div>
-          <h1 className="fux-heading text-4xl mt-1">Command Center</h1>
+          <h1 className="fux-heading text-4xl mt-1">Kommandozentrale</h1>
           <p className="text-muted-foreground text-sm mt-2">
-            Live overview of your customers, imported news and generated content.
+            Live-Übersicht deiner Kunden, importierten News und generierten Inhalte.
           </p>
         </div>
       </header>
 
       <section className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Stat icon={Users} label="Customers" value={stats.customers_count} testid="stat-customers" />
-        <Stat icon={Newspaper} label="New news" value={stats.news_new_count} testid="stat-news-new" />
-        <Stat icon={FileEdit} label="Drafts" value={stats.drafts_count} testid="stat-drafts" />
-        <Stat icon={CheckCircle2} label="Approved" value={stats.approved_count} testid="stat-approved" />
-        <Stat icon={Send} label="Published" value={stats.published_count} testid="stat-published" />
+        <Stat icon={Users} label="Kunden" value={stats.customers_count} testid="stat-customers" />
+        <Stat icon={Newspaper} label="Neue News" value={stats.news_new_count} testid="stat-news-new" />
+        <Stat icon={FileEdit} label="Entwürfe" value={stats.drafts_count} testid="stat-drafts" />
+        <Stat icon={CheckCircle2} label="Freigegeben" value={stats.approved_count} testid="stat-approved" />
+        <Stat icon={Send} label="Veröffentlicht" value={stats.published_count} testid="stat-published" />
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="fux-card" data-testid="latest-news-card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="fux-heading text-lg">Latest news</h2>
-            <Link to="/news" className="fux-label hover:text-primary">view all →</Link>
+            <h2 className="fux-heading text-lg">Neueste News</h2>
+            <Link to="/news" className="fux-label hover:text-primary">alle anzeigen →</Link>
           </div>
           <ul className="divide-y divide-border">
             {stats.latest_news.length === 0 && (
               <li className="text-muted-foreground text-sm py-4">
-                No news yet. Fetch a source or import a URL.
+                Noch keine News. Quelle abrufen oder URL importieren.
               </li>
             )}
             {stats.latest_news.map((n) => {
               const src = n.news_source_id ? sourceMap[n.news_source_id] : null;
-              const srcLabel = src?.name || "Manual";
+              const srcLabel = src?.name || "Manuell";
               const raw = n.image_url;
               const imgSrc = raw
                 ? (raw.startsWith("http") ? raw : resolveUpload(raw))
@@ -142,19 +142,19 @@ export default function Dashboard() {
 
         <div className="fux-card" data-testid="latest-generated-card">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="fux-heading text-lg">Latest generated content</h2>
-            <Link to="/archive" className="fux-label hover:text-primary">archive →</Link>
+            <h2 className="fux-heading text-lg">Neueste Inhalte</h2>
+            <Link to="/archive" className="fux-label hover:text-primary">archiv →</Link>
           </div>
           <ul className="divide-y divide-border">
             {stats.latest_generated_content.length === 0 && (
               <li className="text-muted-foreground text-sm py-4">
-                Nothing generated yet.
+                Noch nichts generiert.
               </li>
             )}
             {stats.latest_generated_content.map((c) => (
               <li key={c.id} className="py-3" data-testid={`dash-generated-${c.id}`}>
                 <div className="flex items-center justify-between gap-2">
-                  <div className="text-sm font-medium truncate flex-1">{c.title || "(untitled)"}</div>
+                  <div className="text-sm font-medium truncate flex-1">{c.title || "(ohne Titel)"}</div>
                   <span className="fux-badge">{c.platform}</span>
                 </div>
                 <div className="fux-label mt-1">{c.status} · {c.tone}</div>
@@ -165,12 +165,12 @@ export default function Dashboard() {
       </section>
 
       <section>
-        <h2 className="fux-heading text-lg mb-4">Quick actions</h2>
+        <h2 className="fux-heading text-lg mb-4">Schnellaktionen</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <QuickAction to="/customers" icon={Plus} label="New customer" testid="qa-new-customer" />
-          <QuickAction to="/news-sources" icon={Rss} label="Import news" testid="qa-import-news" />
-          <QuickAction to="/content-generator" icon={Wand2} label="Generate content" testid="qa-generate" />
-          <QuickAction to="/creative-editor" icon={Palette} label="Create creative" testid="qa-creative" />
+          <QuickAction to="/customers" icon={Plus} label="Neuer Kunde" testid="qa-new-customer" />
+          <QuickAction to="/news-sources" icon={Rss} label="News importieren" testid="qa-import-news" />
+          <QuickAction to="/content-generator" icon={Wand2} label="Content generieren" testid="qa-generate" />
+          <QuickAction to="/creative-editor" icon={Palette} label="Creative erstellen" testid="qa-creative" />
         </div>
       </section>
     </div>

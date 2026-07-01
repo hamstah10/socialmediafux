@@ -72,22 +72,22 @@ export default function MediaLibrary() {
     fd.append("license_note", form.license_note);
     try {
       await api.post("/media/upload", fd);
-      toast.success("Asset uploaded");
+      toast.success("Asset hochgeladen");
       setUploadOpen(false);
       setForm({ category: "Background", customer_id: "", tags: "", source: "", license_note: "" });
       load();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Upload failed");
+      toast.error(err?.response?.data?.detail || "Upload fehlgeschlagen");
     } finally { setUploading(false); }
   };
 
   const remove = async (a) => {
-    if (!window.confirm(`Delete ${a.original_name || "asset"}?`)) return;
+    if (!window.confirm(`${a.original_name || "Asset"} löschen?`)) return;
     try {
       await api.delete(`/media/${a.id}`);
-      toast.success("Deleted");
+      toast.success("Gelöscht");
       load();
-    } catch { toast.error("Delete failed"); }
+    } catch { toast.error("Löschen fehlgeschlagen"); }
   };
 
   const copyUrl = async (a) => {

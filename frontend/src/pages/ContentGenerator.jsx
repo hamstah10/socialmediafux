@@ -122,9 +122,9 @@ export default function ContentGenerator() {
       // Auto compliance check
       const cc = await api.post("/generator/compliance-check", { text: `${r.data.title}\n${r.data.body}` });
       setCompliance(cc.data);
-      toast.success("Content generated");
+      toast.success("Content generiert");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Generation failed");
+      toast.error(err?.response?.data?.detail || "Generierung fehlgeschlagen");
     } finally { setGenerating(false); }
   };
 
@@ -145,7 +145,7 @@ export default function ContentGenerator() {
       setVariants(r.data.variants);
       toast.success("3 Varianten erstellt");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Generation failed");
+      toast.error(err?.response?.data?.detail || "Generierung fehlgeschlagen");
     } finally { setGenerating(false); }
   };
 
@@ -160,7 +160,7 @@ export default function ContentGenerator() {
       const cc = await api.post("/generator/compliance-check", { text: `${result.title}\n${r.data.rewritten}` });
       setCompliance(cc.data);
       toast.success("Text sicherer formuliert");
-    } catch { toast.error("Rewrite failed"); } finally { setRewriting(false); }
+    } catch { toast.error("Umschreiben fehlgeschlagen"); } finally { setRewriting(false); }
   };
 
   const regenerateHashtags = async () => {
@@ -189,16 +189,16 @@ export default function ContentGenerator() {
         cta: result.cta, target_link: result.target_link, tone: result.tone,
         status: "review",
       });
-      toast.success("Content marked for review");
+      toast.success("Content zur Freigabe markiert");
       navigate("/archive");
-    } catch { toast.error("Save failed"); } finally { setSaving(false); }
+    } catch { toast.error("Speichern fehlgeschlagen"); } finally { setSaving(false); }
   };
 
   return (
     <div className="space-y-6" data-testid="content-generator-page">
       <header>
         <div className="fux-label">/ content-generator</div>
-        <h1 className="fux-heading text-4xl mt-1">Content Generator</h1>
+        <h1 className="fux-heading text-4xl mt-1">Content-Generator</h1>
       </header>
 
       <QuickModes
@@ -208,7 +208,7 @@ export default function ContentGenerator() {
           setPlatform("instagram");
           setCustomPrompt(t);
           setCta("Jetzt anfragen");
-          toast.success("Manual-Preset geladen — direkt Generate klicken");
+          toast.success("Manual-Vorlage geladen — direkt auf Generieren klicken");
         }}
         onService={(service) => {
           setNewsId("");
@@ -218,7 +218,7 @@ export default function ContentGenerator() {
             `Erstelle einen Service-Post für den Service "${service}". Beschreibe kurz, was der Kunde erwarten kann, welchen Nutzen der Service bringt, und fordere zur Kontaktaufnahme auf. Fahrzeugbezogen wenn sinnvoll.`,
           );
           setCta(`${service} anfragen`);
-          toast.success(`Service-Preset "${service}" geladen`);
+          toast.success(`Service-Vorlage "${service}" geladen`);
         }}
       />
 
@@ -226,28 +226,28 @@ export default function ContentGenerator() {
         {/* Left: Form */}
         <div className="fux-card space-y-4 lg:col-span-1">
           <div>
-            <label className="fux-label block mb-1.5">Customer</label>
+            <label className="fux-label block mb-1.5">Kunde</label>
             <select className="fux-input" value={customerId} onChange={(e) => setCustomerId(e.target.value)} data-testid="gen-customer">
-              <option value="">— select —</option>
+              <option value="">— wählen —</option>
               {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="fux-label block mb-1.5">News item (optional)</label>
+            <label className="fux-label block mb-1.5">News-Item (optional)</label>
             <select className="fux-input" value={newsId} onChange={(e) => setNewsId(e.target.value)} data-testid="gen-news">
-              <option value="">— none, generate from scratch —</option>
+              <option value="">— keine, frei generieren —</option>
               {news.map((n) => <option key={n.id} value={n.id}>{n.title.slice(0, 80)}</option>)}
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="fux-label block mb-1.5">Platform</label>
+              <label className="fux-label block mb-1.5">Plattform</label>
               <select className="fux-input" value={platform} onChange={(e) => setPlatform(e.target.value)} data-testid="gen-platform">
                 {PLATFORMS.map((p) => <option key={p}>{p}</option>)}
               </select>
             </div>
             <div>
-              <label className="fux-label block mb-1.5">Tone</label>
+              <label className="fux-label block mb-1.5">Tonalität</label>
               <select className="fux-input" value={tone} onChange={(e) => setTone(e.target.value)} data-testid="gen-tone">
                 {TONES.map((p) => <option key={p}>{p}</option>)}
               </select>
@@ -258,11 +258,11 @@ export default function ContentGenerator() {
             <input className="fux-input" value={cta} onChange={(e) => setCta(e.target.value)} data-testid="gen-cta" />
           </div>
           <div>
-            <label className="fux-label block mb-1.5">Target link</label>
+            <label className="fux-label block mb-1.5">Ziel-Link</label>
             <input className="fux-input" placeholder="https://…" value={targetLink} onChange={(e) => setTargetLink(e.target.value)} data-testid="gen-link" />
           </div>
           <div>
-            <label className="fux-label block mb-1.5">Extra instruction (optional)</label>
+            <label className="fux-label block mb-1.5">Zusatzanweisung (optional)</label>
             <textarea className="fux-input min-h-20" value={customPrompt} onChange={(e) => setCustomPrompt(e.target.value)} data-testid="gen-prompt" />
           </div>
           <button
@@ -271,7 +271,7 @@ export default function ContentGenerator() {
             disabled={generating || !customerId}
             data-testid="gen-submit"
           >
-            <Wand2 size={16} /> {generating ? "Generating…" : "Generate content"}
+            <Wand2 size={16} /> {generating ? "Generiere…" : "Content generieren"}
           </button>
           <button
             className="fux-btn-ghost w-full justify-center py-2"
@@ -288,9 +288,9 @@ export default function ContentGenerator() {
           {!result && !variants && (
             <div className="fux-card min-h-64 flex flex-col items-center justify-center text-muted-foreground">
               <Sparkles size={32} className="opacity-40 mb-3" />
-              <div className="fux-label">Awaiting generation</div>
+              <div className="fux-label">Bereit zum Generieren</div>
               <p className="text-sm mt-2 max-w-md text-center">
-                Pick a customer, optionally a news item, choose platform and tone, then hit Generate or 3 Varianten.
+                Wähle einen Kunden, optional ein News-Item, dann Plattform und Tonalität — anschließend Generieren oder 3 Varianten klicken.
               </p>
             </div>
           )}
@@ -324,7 +324,7 @@ export default function ContentGenerator() {
             <>
               <div className="fux-card" data-testid="generated-result">
                 <div className="flex items-center justify-between mb-3">
-                  <div className="fux-label">// generated</div>
+                  <div className="fux-label">// generiert</div>
                   <div className="flex gap-2">
                     <span className="fux-badge">{result.platform}</span>
                     <span className="fux-badge">{result.tone}</span>
@@ -349,16 +349,16 @@ export default function ContentGenerator() {
                 </div>
                 <div className="flex items-center gap-3 mt-4 flex-wrap">
                   <button className="fux-btn-ghost" onClick={regenerateHashtags} data-testid="regen-hashtags">
-                    <Hash size={14} /> Regenerate hashtags
+                    <Hash size={14} /> Hashtags neu
                   </button>
                   <button className="fux-btn-ghost" onClick={runCompliance} data-testid="run-compliance">
-                    <ShieldAlert size={14} /> Compliance check
+                    <ShieldAlert size={14} /> Compliance prüfen
                   </button>
                   <button className="fux-btn-ghost" onClick={rewriteSafe} disabled={rewriting} data-testid="safe-rewrite">
-                    <ShieldCheck size={14} /> {rewriting ? "Rewrite…" : "Sicherer formulieren"}
+                    <ShieldCheck size={14} /> {rewriting ? "Umschreiben…" : "Sicherer formulieren"}
                   </button>
                   <button className="fux-btn-primary ml-auto" onClick={save} disabled={saving} data-testid="save-content">
-                    <Save size={14} /> {saving ? "Saving…" : "Save & submit for review"}
+                    <Save size={14} /> {saving ? "Speichere…" : "Speichern & zur Freigabe"}
                   </button>
                 </div>
               </div>
@@ -369,7 +369,7 @@ export default function ContentGenerator() {
                     {compliance.ok ? (
                       <><CheckCircle2 size={18} className="text-primary" /> <span className="fux-heading text-lg">Compliance OK</span></>
                     ) : (
-                      <><AlertTriangle size={18} style={{ color: "#FFB020" }} /> <span className="fux-heading text-lg" style={{ color: "#FFB020" }}>Compliance warnings</span></>
+                      <><AlertTriangle size={18} style={{ color: "#FFB020" }} /> <span className="fux-heading text-lg" style={{ color: "#FFB020" }}>Compliance-Warnungen</span></>
                     )}
                   </div>
                   {compliance.warnings.length > 0 && (

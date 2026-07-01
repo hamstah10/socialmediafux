@@ -20,18 +20,18 @@ import {
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, testid: "nav-dashboard" },
-  { to: "/customers", label: "Customers", icon: Users, testid: "nav-customers" },
-  { to: "/news-sources", label: "News Sources", icon: Rss, testid: "nav-news-sources" },
-  { to: "/news", label: "News Inbox", icon: Inbox, testid: "nav-news-inbox" },
-  { to: "/news/import-url", label: "URL Import", icon: Link2, testid: "nav-import-url" },
-  { to: "/content-generator", label: "Generator", icon: Wand2, testid: "nav-generator" },
-  { to: "/bulk-generator", label: "Bulk Generator", icon: Zap, testid: "nav-bulk-generator" },
+  { to: "/customers", label: "Kunden", icon: Users, testid: "nav-customers" },
+  { to: "/news-sources", label: "News-Quellen", icon: Rss, testid: "nav-news-sources" },
+  { to: "/news", label: "News-Eingang", icon: Inbox, testid: "nav-news-inbox" },
+  { to: "/news/import-url", label: "URL importieren", icon: Link2, testid: "nav-import-url" },
+  { to: "/content-generator", label: "Content-Generator", icon: Wand2, testid: "nav-generator" },
+  { to: "/bulk-generator", label: "Massen-Generator", icon: Zap, testid: "nav-bulk-generator" },
   { to: "/creative-editor", label: "Creative Editor", icon: Palette, testid: "nav-creative-editor" },
   { to: "/layout-editor", label: "Layout Editor", icon: Layers, testid: "nav-layout-editor" },
-  { to: "/archive", label: "Archive", icon: Archive, testid: "nav-archive" },
-  { to: "/templates", label: "Templates", icon: LayoutTemplate, testid: "nav-templates" },
-  { to: "/media-library", label: "Media Library", icon: Image, testid: "nav-media" },
-  { to: "/settings", label: "Settings", icon: Settings, testid: "nav-settings" },
+  { to: "/archive", label: "Archiv", icon: Archive, testid: "nav-archive" },
+  { to: "/templates", label: "Vorlagen", icon: LayoutTemplate, testid: "nav-templates" },
+  { to: "/media-library", label: "Medien", icon: Image, testid: "nav-media" },
+  { to: "/settings", label: "Einstellungen", icon: Settings, testid: "nav-settings" },
 ];
 
 export default function AppLayout() {
@@ -71,7 +71,7 @@ export default function AppLayout() {
           ))}
         </nav>
         <div className="border-t border-border px-6 py-4">
-          <div className="fux-label">Signed in as</div>
+          <div className="fux-label">Angemeldet als</div>
           <div className="text-sm font-semibold truncate" data-testid="current-user-email">
             {user?.email}
           </div>
@@ -84,14 +84,14 @@ export default function AppLayout() {
               navigate("/login");
             }}
           >
-            <LogOut size={14} /> Logout
+            <LogOut size={14} /> Abmelden
           </button>
         </div>
       </aside>
 
       <main className="flex-1 min-w-0">
         <div className="border-b border-border bg-background/70 backdrop-blur px-8 py-3 flex items-center justify-between">
-          <div className="fux-label">social.tuningfux.de · admin console</div>
+          <div className="fux-label">social.tuningfux.de · admin-konsole</div>
           <div className="flex items-center gap-2">
             <span className="fux-badge">
               <span className="inline-block w-1.5 h-1.5 bg-primary mr-1.5 animate-pulse" />

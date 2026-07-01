@@ -448,7 +448,7 @@ export default function LayoutEditor() {
       toast.success("Layout gespeichert");
       navigate("/archive");
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Save failed");
+      toast.error(err?.response?.data?.detail || "Speichern fehlgeschlagen");
     } finally { setSaving(false); }
   };
 
@@ -661,7 +661,7 @@ export default function LayoutEditor() {
                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
                     <MousePointer2 size={28} className="mx-auto mb-2 opacity-40" />
-                    <div className="fux-label">Add a layer to start</div>
+                    <div className="fux-label">Layer hinzufügen zum Starten</div>
                   </div>
                 </div>
               )}
@@ -811,27 +811,27 @@ export default function LayoutEditor() {
                   )}
 
                   <div className="grid grid-cols-2 gap-2">
-                    <NumberField label="Font (cqw)" value={selected.fontSize} onChange={(v) => updateSelected({ fontSize: v })} step={0.25} min={1} max={20} />
-                    <NumberField label="Weight" value={selected.fontWeight} onChange={(v) => updateSelected({ fontWeight: v })} step={100} min={100} max={900} />
+                    <NumberField label="Schriftgröße (cqw)" value={selected.fontSize} onChange={(v) => updateSelected({ fontSize: v })} step={0.25} min={1} max={20} />
+                    <NumberField label="Stärke" value={selected.fontWeight} onChange={(v) => updateSelected({ fontWeight: v })} step={100} min={100} max={900} />
                   </div>
                   <div>
-                    <div className="fux-label mb-1">Align</div>
+                    <div className="fux-label mb-1">Ausrichtung</div>
                     <div className="grid grid-cols-3 gap-1">
-                      {["left","center","right"].map((a) => (
-                        <button key={a} onClick={() => updateSelected({ align: a })} className={`px-2 py-1 text-[10px] uppercase border ${selected.align===a?"border-primary text-primary":"border-border text-muted-foreground"}`}>{a}</button>
+                      {[{ k: "left", l: "links" }, { k: "center", l: "mitte" }, { k: "right", l: "rechts" }].map((a) => (
+                        <button key={a.k} onClick={() => updateSelected({ align: a.k })} className={`px-2 py-1 text-[10px] uppercase border ${selected.align===a.k?"border-primary text-primary":"border-border text-muted-foreground"}`}>{a.l}</button>
                       ))}
                     </div>
                   </div>
                   <label className="flex items-center gap-2 fux-label">
                     <input type="checkbox" checked={!!selected.upper} onChange={(e) => updateSelected({ upper: e.target.checked })} />
-                    UPPERCASE
+                    GROSSBUCHSTABEN
                   </label>
                   <label className="block">
-                    <div className="fux-label mb-1">Color</div>
+                    <div className="fux-label mb-1">Textfarbe</div>
                     <input type="color" className="fux-input h-9" value={selected.color} onChange={(e) => updateSelected({ color: e.target.value })} />
                   </label>
                   <label className="block">
-                    <div className="fux-label mb-1">Background</div>
+                    <div className="fux-label mb-1">Hintergrund</div>
                     <input className="fux-input" placeholder="transparent oder #hex" value={selected.bg || ""} onChange={(e) => updateSelected({ bg: e.target.value })} />
                   </label>
                 </>
@@ -839,7 +839,7 @@ export default function LayoutEditor() {
 
               {selected.type === "box" && (
                 <label className="block">
-                  <div className="fux-label mb-1">Color</div>
+                  <div className="fux-label mb-1">Farbe</div>
                   <input type="color" className="fux-input h-9" value={selected.bg} onChange={(e) => updateSelected({ bg: e.target.value })} />
                 </label>
               )}
@@ -850,22 +850,22 @@ export default function LayoutEditor() {
                     <ImageIcon size={12} /> Bild ändern
                   </button>
                   <div>
-                    <div className="fux-label mb-1">Fit</div>
+                    <div className="fux-label mb-1">Anpassung</div>
                     <div className="grid grid-cols-3 gap-1">
-                      {["cover","contain","fill"].map((f) => (
-                        <button key={f} onClick={() => updateSelected({ fit: f })} className={`px-2 py-1 text-[10px] uppercase border ${selected.fit===f?"border-primary text-primary":"border-border text-muted-foreground"}`}>{f}</button>
+                      {[{ k: "cover", l: "füllen" }, { k: "contain", l: "passend" }, { k: "fill", l: "strecken" }].map((f) => (
+                        <button key={f.k} onClick={() => updateSelected({ fit: f.k })} className={`px-2 py-1 text-[10px] uppercase border ${selected.fit===f.k?"border-primary text-primary":"border-border text-muted-foreground"}`}>{f.l}</button>
                       ))}
                     </div>
                   </div>
                 </>
               )}
 
-              <NumberField label="Opacity" value={selected.opacity} onChange={(v) => updateSelected({ opacity: v })} step={0.1} min={0} max={1} />
-              <NumberField label="Radius px" value={selected.radius} onChange={(v) => updateSelected({ radius: v })} step={1} min={0} max={200} />
+              <NumberField label="Deckkraft" value={selected.opacity} onChange={(v) => updateSelected({ opacity: v })} step={0.1} min={0} max={1} />
+              <NumberField label="Radius (px)" value={selected.radius} onChange={(v) => updateSelected({ radius: v })} step={1} min={0} max={200} />
             </div>
           ) : !selectedGroup ? (
             <div className="fux-card text-muted-foreground text-sm">
-              <div className="fux-label mb-2">Properties</div>
+              <div className="fux-label mb-2">Eigenschaften</div>
               Klicke einen Layer oder eine Gruppe zum Bearbeiten.
             </div>
           ) : null}

@@ -5,6 +5,7 @@ import { Archive as ArchiveIcon, CircleSlash, ExternalLink, Eye, ImageOff, Link2
 import { toast } from "sonner";
 
 const STATUSES = ["all", "new", "reviewed", "used", "ignored", "archived"];
+const STATUS_LABEL = { all: "alle", new: "neu", reviewed: "gesichtet", used: "verwendet", ignored: "ignoriert", archived: "archiviert" };
 
 // Displays the image if the URL loads, falls back to a placeholder card
 // with the source name so users always see WHERE a news item came from.
@@ -18,7 +19,7 @@ const NewsImage = ({ src, sourceName }) => {
       >
         <ImageOff size={20} strokeWidth={1.5} />
         <span className="fux-label text-[9px] text-center px-1 leading-tight">
-          {sourceName || "no image"}
+          {sourceName || "kein Bild"}
         </span>
       </div>
     );
@@ -83,11 +84,11 @@ export default function NewsInbox() {
     setBusy(true);
     try {
       await api.post("/news-items/import-url", { url: importUrl });
-      toast.success("URL imported");
+      toast.success("URL importiert");
       setImportUrl("");
       load();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Import failed");
+      toast.error(err?.response?.data?.detail || "Import fehlgeschlagen");
     } finally { setBusy(false); }
   };
 
@@ -126,7 +127,7 @@ export default function NewsInbox() {
       <header className="flex items-end justify-between">
         <div>
           <div className="fux-label">/ news</div>
-          <h1 className="fux-heading text-4xl mt-1">News Inbox</h1>
+          <h1 className="fux-heading text-4xl mt-1">News-Eingang</h1>
         </div>
       </header>
 
@@ -134,13 +135,13 @@ export default function NewsInbox() {
         <Link2 size={18} className="text-primary shrink-0" />
         <input
           className="fux-input"
-          placeholder="Paste article URL and import as news item…"
+          placeholder="Artikel-URL einfügen und als News importieren…"
           value={importUrl}
           onChange={(e) => setImportUrl(e.target.value)}
           data-testid="import-url-input"
         />
         <button className="fux-btn-primary shrink-0" disabled={busy} data-testid="import-url-btn">
-          {busy ? "Importing…" : "Import URL"}
+          {busy ? "Importiere…" : "URL importieren"}
         </button>
       </form>
 
@@ -155,12 +156,12 @@ export default function NewsInbox() {
               }`}
               data-testid={`status-tab-${s}`}
             >
-              {s}
+              {STATUS_LABEL[s] || s}
             </button>
           ))}
         </div>
         <select className="fux-input max-w-xs" value={sourceId} onChange={(e) => setSourceId(e.target.value)} data-testid="source-filter">
-          <option value="">All sources</option>
+          <option value="">Alle Quellen</option>
           {sources.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
@@ -168,12 +169,12 @@ export default function NewsInbox() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {items.length === 0 && (
           <div className="fux-card col-span-2 text-center text-muted-foreground">
-            No news items. Fetch a source or import a URL above.
+            Keine News. Quelle abrufen oder oben URL importieren.
           </div>
         )}
         {items.map((n) => {
           const source = n.news_source_id ? sourceMap[n.news_source_id] : null;
-          const sourceLabel = source?.name || domainOf(n.url) || "Manual import";
+          const sourceLabel = source?.name || domainOf(n.url) || "Manueller Import";
           return (
             <article key={n.id} className="fux-card flex gap-4" data-testid={`news-item-${n.id}`}>
               <button
@@ -209,16 +210,16 @@ export default function NewsInbox() {
                 <p className="text-sm text-muted-foreground line-clamp-2 mt-2">{n.summary}</p>
                 <div className="flex flex-wrap items-center gap-3 mt-3">
                   <button onClick={() => openPreview(n)} className="fux-btn-ghost" data-testid={`preview-news-${n.id}`}>
-                    <Eye size={12} /> Preview
+                    <Eye size={12} /> Vorschau
                   </button>
                   <button onClick={() => openInGenerator(n.id)} className="fux-btn-primary" data-testid={`use-news-${n.id}`}>
-                    <Wand2 size={12} /> Use
+                    <Wand2 size={12} /> Verwenden
                   </button>
                   <button onClick={() => setItemStatus(n.id, "ignored")} className="fux-label hover:text-destructive inline-flex items-center gap-1">
-                    <CircleSlash size={12} /> ignore
+                    <CircleSlash size={12} /> ignorieren
                   </button>
                   <button onClick={() => setItemStatus(n.id, "archived")} className="fux-label hover:text-foreground inline-flex items-center gap-1">
-                    <ArchiveIcon size={12} /> archive
+                    <ArchiveIcon size={12} /> archivieren
                   </button>
                 </div>
               </div>
@@ -229,7 +230,7 @@ export default function NewsInbox() {
 
       {preview && (() => {
         const src = preview.news_source_id ? sourceMap[preview.news_source_id] : null;
-        const label = src?.name || domainOf(preview.url) || "Manual import";
+        const label = src?.name || domainOf(preview.url) || "Manueller Import";
         return (
           <div className="fixed inset-0 bg-background/85 flex items-center justify-center z-50 p-6 overflow-y-auto" data-testid="news-preview-modal">
             <div className="fux-card w-full max-w-3xl">
@@ -288,10 +289,10 @@ export default function NewsInbox() {
                   <ExternalLink size={14} /> Original öffnen
                 </a>
                 <button onClick={() => { setItemStatus(preview.id, "ignored"); setPreview(null); }} className="fux-label hover:text-destructive inline-flex items-center gap-1 ml-auto">
-                  <CircleSlash size={12} /> ignore
+                  <CircleSlash size={12} /> ignorieren
                 </button>
                 <button onClick={() => { setItemStatus(preview.id, "archived"); setPreview(null); }} className="fux-label hover:text-foreground inline-flex items-center gap-1">
-                  <ArchiveIcon size={12} /> archive
+                  <ArchiveIcon size={12} /> archivieren
                 </button>
               </div>
             </div>

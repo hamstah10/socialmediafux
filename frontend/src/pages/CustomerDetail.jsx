@@ -4,7 +4,14 @@ import { api, resolveUpload } from "../lib/api";
 import { ArrowLeft, Upload, Save } from "lucide-react";
 import { toast } from "sonner";
 
-const TABS = ["profile", "branding", "services", "social", "content", "creatives"];
+const TABS = [
+  { key: "profile", label: "Profil" },
+  { key: "branding", label: "Branding" },
+  { key: "services", label: "Leistungen" },
+  { key: "social", label: "Social Links" },
+  { key: "content", label: "Content" },
+  { key: "creatives", label: "Creatives" },
+];
 
 export default function CustomerDetail() {
   const { id } = useParams();
@@ -33,9 +40,9 @@ export default function CustomerDetail() {
     try {
       const { id: _id, created_at, updated_at, logo_path, slug, ...rest } = customer;
       await api.put(`/customers/${id}`, rest);
-      toast.success("Saved");
+      toast.success("Gespeichert");
     } catch (err) {
-      toast.error("Save failed");
+      toast.error("Speichern fehlgeschlagen");
     } finally { setBusy(false); }
   };
 
@@ -61,14 +68,14 @@ export default function CustomerDetail() {
     } finally { setBusy(false); }
   };
 
-  if (!customer) return <div className="fux-label">Loading…</div>;
+  if (!customer) return <div className="fux-label">Lädt…</div>;
 
   const set = (k, v) => setCustomer({ ...customer, [k]: v });
 
   return (
     <div className="space-y-6" data-testid="customer-detail-page">
       <button onClick={() => navigate("/customers")} className="fux-label hover:text-primary flex items-center gap-2">
-        <ArrowLeft size={14} /> back
+        <ArrowLeft size={14} /> zurück
       </button>
 
       <header className="fux-card flex items-center gap-6">
@@ -85,30 +92,30 @@ export default function CustomerDetail() {
           )}
         </div>
         <div className="flex-1">
-          <div className="fux-label">Customer · {customer.slug}</div>
+          <div className="fux-label">Kunde · {customer.slug}</div>
           <h1 className="fux-heading text-3xl mt-1">{customer.name}</h1>
           <div className="flex gap-2 mt-2">
             <span className="fux-badge">{customer.tone_of_voice}</span>
             <span className="fux-badge">{customer.language}</span>
-            <span className="fux-badge fux-badge-accent">{customer.is_active ? "active" : "inactive"}</span>
+            <span className="fux-badge fux-badge-accent">{customer.is_active ? "aktiv" : "inaktiv"}</span>
           </div>
         </div>
         <button className="fux-btn-primary" onClick={save} disabled={busy} data-testid="save-customer">
-          <Save size={14} /> Save
+          <Save size={14} /> Speichern
         </button>
       </header>
 
       <div className="flex gap-1 border-b border-border" data-testid="customer-tabs">
         {TABS.map((t) => (
           <button
-            key={t}
-            data-testid={`tab-${t}`}
+            key={t.key}
+            data-testid={`tab-${t.key}`}
             className={`px-4 py-2 uppercase tracking-widest text-xs border-b-2 transition-colors ${
-              tab === t ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+              tab === t.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
             }`}
-            onClick={() => setTab(t)}
+            onClick={() => setTab(t.key)}
           >
-            {t}
+            {t.label}
           </button>
         ))}
       </div>
@@ -119,19 +126,19 @@ export default function CustomerDetail() {
             <input className="fux-input" value={customer.name} onChange={(e) => set("name", e.target.value)} /></div>
           <div><label className="fux-label block mb-1.5">Website</label>
             <input className="fux-input" value={customer.website || ""} onChange={(e) => set("website", e.target.value)} /></div>
-          <div><label className="fux-label block mb-1.5">Email</label>
+          <div><label className="fux-label block mb-1.5">E-Mail</label>
             <input className="fux-input" value={customer.email || ""} onChange={(e) => set("email", e.target.value)} /></div>
-          <div><label className="fux-label block mb-1.5">Phone</label>
+          <div><label className="fux-label block mb-1.5">Telefon</label>
             <input className="fux-input" value={customer.phone || ""} onChange={(e) => set("phone", e.target.value)} /></div>
-          <div><label className="fux-label block mb-1.5">Tone of voice</label>
+          <div><label className="fux-label block mb-1.5">Tonalität</label>
             <select className="fux-input" value={customer.tone_of_voice} onChange={(e) => set("tone_of_voice", e.target.value)}>
               {["technisch","seriös","sportlich","premium","verkaufsstark","kurz","b2b","lokal"].map((t) => (<option key={t}>{t}</option>))}
             </select></div>
-          <div><label className="fux-label block mb-1.5">Language</label>
+          <div><label className="fux-label block mb-1.5">Sprache</label>
             <select className="fux-input" value={customer.language} onChange={(e) => set("language", e.target.value)}>
               <option value="de">de</option><option value="en">en</option>
             </select></div>
-          <div className="col-span-2"><label className="fux-label block mb-1.5">Notes</label>
+          <div className="col-span-2"><label className="fux-label block mb-1.5">Notizen</label>
             <textarea className="fux-input min-h-24" value={customer.notes || ""} onChange={(e) => set("notes", e.target.value)} /></div>
         </div>
       )}
@@ -139,11 +146,11 @@ export default function CustomerDetail() {
       {tab === "branding" && (
         <div className="fux-card space-y-5" data-testid="tab-branding-content">
           <div className="grid grid-cols-3 gap-4">
-            <div><label className="fux-label block mb-1.5">Primary</label>
+            <div><label className="fux-label block mb-1.5">Grundfarbe</label>
               <input className="fux-input h-10" type="color" value={customer.primary_color} onChange={(e) => set("primary_color", e.target.value)} /></div>
-            <div><label className="fux-label block mb-1.5">Secondary</label>
+            <div><label className="fux-label block mb-1.5">Sekundär</label>
               <input className="fux-input h-10" type="color" value={customer.secondary_color} onChange={(e) => set("secondary_color", e.target.value)} /></div>
-            <div><label className="fux-label block mb-1.5">Accent</label>
+            <div><label className="fux-label block mb-1.5">Akzent</label>
               <input className="fux-input h-10" type="color" value={customer.accent_color} onChange={(e) => set("accent_color", e.target.value)} /></div>
           </div>
 
@@ -194,7 +201,7 @@ export default function CustomerDetail() {
 
       {tab === "services" && (
         <div className="fux-card" data-testid="tab-services-content">
-          <label className="fux-label block mb-1.5">Services (comma separated)</label>
+          <label className="fux-label block mb-1.5">Leistungen (Komma-getrennt)</label>
           <input
             className="fux-input"
             value={(customer.services || []).join(", ")}
@@ -229,8 +236,8 @@ export default function CustomerDetail() {
             <table className="w-full text-sm">
               <thead className="border-b border-border">
                 <tr>
-                  <th className="fux-label px-6 py-3 text-left">Title</th>
-                  <th className="fux-label px-6 py-3 text-left">Platform</th>
+                  <th className="fux-label px-6 py-3 text-left">Titel</th>
+                  <th className="fux-label px-6 py-3 text-left">Plattform</th>
                   <th className="fux-label px-6 py-3 text-left">Status</th>
                 </tr>
               </thead>

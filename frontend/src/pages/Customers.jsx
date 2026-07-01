@@ -37,12 +37,12 @@ export default function Customers() {
         services: form.services.split(",").map((s) => s.trim()).filter(Boolean),
       };
       await api.post("/customers", payload);
-      toast.success("Customer created");
+      toast.success("Kunde erstellt");
       setOpen(false);
       setForm(emptyForm);
       load();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Create failed");
+      toast.error(err?.response?.data?.detail || "Anlage fehlgeschlagen");
     } finally {
       setBusy(false);
     }
@@ -56,11 +56,11 @@ export default function Customers() {
     <div className="space-y-8" data-testid="customers-page">
       <header className="flex items-end justify-between">
         <div>
-          <div className="fux-label">/ customers</div>
-          <h1 className="fux-heading text-4xl mt-1">Customers</h1>
+          <div className="fux-label">/ kunden</div>
+          <h1 className="fux-heading text-4xl mt-1">Kunden</h1>
         </div>
         <button className="fux-btn-primary" data-testid="new-customer-btn" onClick={() => setOpen(true)}>
-          <Plus size={14} /> New customer
+          <Plus size={14} /> Neuer Kunde
         </button>
       </header>
 
@@ -70,12 +70,12 @@ export default function Customers() {
           <input
             data-testid="customer-search"
             className="fux-input pl-9"
-            placeholder="Search customers…"
+            placeholder="Kunden suchen…"
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
         </div>
-        <div className="fux-label">{filtered.length} total</div>
+        <div className="fux-label">{filtered.length} gesamt</div>
       </div>
 
       <div className="fux-card p-0 overflow-hidden">
@@ -84,9 +84,9 @@ export default function Customers() {
             <tr className="text-left">
               <th className="fux-label px-6 py-3">Logo</th>
               <th className="fux-label px-6 py-3">Name</th>
-              <th className="fux-label px-6 py-3">Services</th>
+              <th className="fux-label px-6 py-3">Leistungen</th>
               <th className="fux-label px-6 py-3">Website</th>
-              <th className="fux-label px-6 py-3">Accent</th>
+              <th className="fux-label px-6 py-3">Akzent</th>
               <th className="fux-label px-6 py-3">Status</th>
               <th className="fux-label px-6 py-3"></th>
             </tr>
@@ -114,12 +114,12 @@ export default function Customers() {
                 </td>
                 <td className="px-6 py-3">
                   <span className={`fux-badge ${c.is_active ? "fux-badge-accent" : ""}`}>
-                    {c.is_active ? "active" : "inactive"}
+                    {c.is_active ? "aktiv" : "inaktiv"}
                   </span>
                 </td>
                 <td className="px-6 py-3 text-right">
                   <Link to={`/customers/${c.id}`} className="fux-label hover:text-primary" data-testid={`customer-open-${c.id}`}>
-                    open →
+                    öffnen →
                   </Link>
                 </td>
               </tr>
@@ -127,7 +127,7 @@ export default function Customers() {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={7} className="px-6 py-10 text-center text-muted-foreground">
-                  No customers found.
+                  Keine Kunden gefunden.
                 </td>
               </tr>
             )}
@@ -140,8 +140,8 @@ export default function Customers() {
           <div className="fux-card w-full max-w-2xl">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="fux-label">// new record</div>
-                <h2 className="fux-heading text-2xl mt-1">Create customer</h2>
+                <div className="fux-label">// neuer Eintrag</div>
+                <h2 className="fux-heading text-2xl mt-1">Kunde anlegen</h2>
               </div>
               <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground" data-testid="close-modal">
                 <X size={18} />
@@ -159,17 +159,17 @@ export default function Customers() {
                        value={form.website} onChange={(e) => setForm({ ...form, website: e.target.value })} />
               </div>
               <div>
-                <label className="fux-label block mb-1.5">Email</label>
+                <label className="fux-label block mb-1.5">E-Mail</label>
                 <input className="fux-input" data-testid="cf-email"
                        value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
               <div>
-                <label className="fux-label block mb-1.5">Phone</label>
+                <label className="fux-label block mb-1.5">Telefon</label>
                 <input className="fux-input" data-testid="cf-phone"
                        value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <div>
-                <label className="fux-label block mb-1.5">Tone of voice</label>
+                <label className="fux-label block mb-1.5">Tonalität</label>
                 <select className="fux-input" data-testid="cf-tone"
                         value={form.tone_of_voice} onChange={(e) => setForm({ ...form, tone_of_voice: e.target.value })}>
                   {["technisch","seriös","sportlich","premium","verkaufsstark","kurz","b2b","lokal"].map((t) => (
@@ -178,24 +178,24 @@ export default function Customers() {
                 </select>
               </div>
               <div className="col-span-2">
-                <label className="fux-label block mb-1.5">Services (comma separated)</label>
+                <label className="fux-label block mb-1.5">Leistungen (Komma-getrennt)</label>
                 <input className="fux-input" data-testid="cf-services"
                        value={form.services} onChange={(e) => setForm({ ...form, services: e.target.value })} />
               </div>
               <div>
-                <label className="fux-label block mb-1.5">Accent</label>
+                <label className="fux-label block mb-1.5">Akzentfarbe</label>
                 <input className="fux-input" type="color" data-testid="cf-accent"
                        value={form.accent_color} onChange={(e) => setForm({ ...form, accent_color: e.target.value })} />
               </div>
               <div>
-                <label className="fux-label block mb-1.5">Primary</label>
+                <label className="fux-label block mb-1.5">Grundfarbe</label>
                 <input className="fux-input" type="color" data-testid="cf-primary"
                        value={form.primary_color} onChange={(e) => setForm({ ...form, primary_color: e.target.value })} />
               </div>
               <div className="col-span-2 flex justify-end gap-2 mt-2">
-                <button type="button" className="fux-btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+                <button type="button" className="fux-btn-ghost" onClick={() => setOpen(false)}>Abbrechen</button>
                 <button type="submit" className="fux-btn-primary" disabled={busy} data-testid="cf-submit">
-                  {busy ? "Saving…" : "Create"}
+                  {busy ? "Speichere…" : "Anlegen"}
                 </button>
               </div>
             </form>

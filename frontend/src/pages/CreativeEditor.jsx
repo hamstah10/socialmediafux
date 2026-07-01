@@ -100,12 +100,12 @@ export default function CreativeEditor() {
         background_image_path: backgroundAsset?.file_path || null,
         logo_override_path: logoAsset?.file_path || null,
       });
-      toast.success("Creative saved");
-    } catch { toast.error("Save failed"); } finally { setSaving(false); }
+      toast.success("Creative gespeichert");
+    } catch { toast.error("Speichern fehlgeschlagen"); } finally { setSaving(false); }
   };
 
   const exportPng = () => {
-    toast.info("PNG export benötigt Playwright — wird später auf VPS aktiviert.");
+    toast.info("PNG-Export benötigt Playwright — wird später auf VPS aktiviert.");
   };
 
   return (
@@ -120,22 +120,22 @@ export default function CreativeEditor() {
           <div className="fux-card space-y-3">
             <div className="fux-label">Setup</div>
             <div>
-              <label className="fux-label block mb-1.5">Customer</label>
+              <label className="fux-label block mb-1.5">Kunde</label>
               <select className="fux-input" value={customerId} onChange={(e) => setCustomerId(e.target.value)} data-testid="ce-customer">
                 {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
             <div>
-              <label className="fux-label block mb-1.5">Generated content</label>
+              <label className="fux-label block mb-1.5">Generierter Content</label>
               <select className="fux-input" value={contentId} onChange={(e) => applyContent(e.target.value)} data-testid="ce-content">
-                <option value="">— none —</option>
+                <option value="">— keiner —</option>
                 {contents.map((c) => <option key={c.id} value={c.id}>{c.title?.slice(0, 60)}</option>)}
               </select>
             </div>
             <div>
-              <label className="fux-label block mb-1.5">Template</label>
+              <label className="fux-label block mb-1.5">Vorlage</label>
               <select className="fux-input" value={templateId} onChange={(e) => setTemplateId(e.target.value)} data-testid="ce-template">
-                <option value="">— default grid —</option>
+                <option value="">— Standard-Grid —</option>
                 {templates.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </div>
@@ -150,7 +150,7 @@ export default function CreativeEditor() {
 
         <div className="col-span-12 lg:col-span-6">
           <div className="fux-card p-6">
-            <div className="fux-label mb-3">// live preview · {fmt.w}×{fmt.h}</div>
+            <div className="fux-label mb-3">// Live-Vorschau · {fmt.w}×{fmt.h}</div>
             <CreativePreview
               customer={customer}
               template={template}
@@ -166,17 +166,17 @@ export default function CreativeEditor() {
           </div>
 
           <div className="fux-card mt-4 space-y-3" data-testid="media-controls">
-            <div className="fux-label">Media</div>
+            <div className="fux-label">Medien</div>
             <div className="grid grid-cols-2 gap-3">
               <MediaSlot
-                label="Background"
+                label="Hintergrund"
                 asset={backgroundAsset}
                 onPick={() => setPickerMode("background")}
                 onClear={() => setBackgroundAsset(null)}
                 testid="bg"
               />
               <MediaSlot
-                label="Logo override"
+                label="Logo überschreiben"
                 asset={logoAsset}
                 fallbackUrl={customerLogo}
                 fallbackLabel="Kundenlogo"
@@ -208,12 +208,12 @@ export default function CreativeEditor() {
           <div className="fux-card space-y-2">
             <div className="fux-label">Export</div>
             <button className="fux-btn-primary w-full justify-center" onClick={save} disabled={saving} data-testid="ce-save">
-              <Save size={14} /> {saving ? "Saving…" : "Save creative"}
+              <Save size={14} /> {saving ? "Speichere…" : "Creative speichern"}
             </button>
             <button className="fux-btn-ghost w-full justify-center" onClick={exportPng} data-testid="ce-export-png">
-              <Download size={14} /> Export PNG
+              <Download size={14} /> PNG exportieren
             </button>
-            <p className="fux-label text-[10px]">PNG export requires Playwright (VPS).</p>
+            <p className="fux-label text-[10px]">PNG-Export benötigt Playwright (VPS).</p>
           </div>
         </div>
       </div>
@@ -227,7 +227,7 @@ export default function CreativeEditor() {
           if (pickerMode === "background") setBackgroundAsset(asset);
           else if (pickerMode === "logo") setLogoAsset(asset);
           setPickerMode(null);
-          toast.success(`${pickerMode === "background" ? "Background" : "Logo"} gesetzt`);
+          toast.success(`${pickerMode === "background" ? "Hintergrund" : "Logo"} gesetzt`);
         }}
       />
     </div>

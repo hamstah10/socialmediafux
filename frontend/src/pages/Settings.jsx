@@ -15,26 +15,26 @@ export default function Settings() {
   return (
     <div className="space-y-6" data-testid="settings-page">
       <header>
-        <div className="fux-label">/ settings</div>
-        <h1 className="fux-heading text-4xl mt-1">Settings</h1>
+        <div className="fux-label">/ einstellungen</div>
+        <h1 className="fux-heading text-4xl mt-1">Einstellungen</h1>
       </header>
 
       <div className="fux-card">
         {s ? (
           <>
-            <SettingsRow label="Application" value={`${s.app} v${s.version}`} testid="set-app" />
+            <SettingsRow label="Anwendung" value={`${s.app} v${s.version}`} testid="set-app" />
             <SettingsRow label="Domain" value={s.domain} testid="set-domain" />
-            <SettingsRow label="API base URL" value={API_BASE} testid="set-api" />
-            <SettingsRow label="Upload dir" value={s.upload_dir} testid="set-uploads" />
-            <SettingsRow label="LLM configured" value={s.llm_configured ? "yes · Claude Sonnet 4.5" : "no (mock generator)"} testid="set-llm" />
+            <SettingsRow label="API-Basis-URL" value={API_BASE} testid="set-api" />
+            <SettingsRow label="Upload-Verzeichnis" value={s.upload_dir} testid="set-uploads" />
+            <SettingsRow label="LLM konfiguriert" value={s.llm_configured ? "ja · Claude Sonnet 4.5" : "nein (Mock-Generator)"} testid="set-llm" />
           </>
         ) : (
-          <div className="fux-label">Loading…</div>
+          <div className="fux-label">Lädt…</div>
         )}
       </div>
 
       <div className="fux-card">
-        <h3 className="fux-heading text-lg mb-2">Deployment target</h3>
+        <h3 className="fux-heading text-lg mb-2">Deployment-Ziel</h3>
         <p className="text-sm text-muted-foreground">
           Für VPS-Betrieb ist Backend-Port <span className="mono">7090</span> vorgesehen. In dieser
           Emergent-Umgebung läuft der Server intern auf <span className="mono">8001</span> hinter

@@ -20,7 +20,7 @@ const emptyForm = () => ({
   style_key: "ecu_update",
   background_type: "grid",
   is_global: true,
-  config: { badge: "NEW ECU UPDATE", accent: "#B4E600" },
+  config: { badge: "NEUES ECU-UPDATE", accent: "#B4E600" },
 });
 
 export default function Templates() {
@@ -49,7 +49,7 @@ export default function Templates() {
   const duplicate = async (t) => {
     setEditing(null);
     setForm({
-      name: `${t.name} (Copy)`,
+      name: `${t.name} (Kopie)`,
       format: t.format,
       style_key: t.style_key,
       background_type: t.background_type,
@@ -60,12 +60,12 @@ export default function Templates() {
   };
 
   const remove = async (t) => {
-    if (!window.confirm(`Delete template "${t.name}"?`)) return;
+    if (!window.confirm(`Template "${t.name}" löschen?`)) return;
     try {
       await api.delete(`/templates/${t.id}`);
-      toast.success("Template deleted");
+      toast.success("Template gelöscht");
       load();
-    } catch { toast.error("Delete failed"); }
+    } catch { toast.error("Löschen fehlgeschlagen"); }
   };
 
   const save = async (e) => {
@@ -76,15 +76,15 @@ export default function Templates() {
       const payload = { ...form, width: size.w, height: size.h };
       if (editing) {
         await api.put(`/templates/${editing.id}`, payload);
-        toast.success("Template updated");
+        toast.success("Template aktualisiert");
       } else {
         await api.post("/templates", payload);
-        toast.success("Template created");
+        toast.success("Template erstellt");
       }
       setOpen(false);
       load();
     } catch (err) {
-      toast.error(err?.response?.data?.detail || "Save failed");
+      toast.error(err?.response?.data?.detail || "Speichern fehlgeschlagen");
     } finally { setBusy(false); }
   };
 
@@ -97,14 +97,14 @@ export default function Templates() {
     <div className="space-y-6" data-testid="templates-page">
       <header className="flex items-end justify-between">
         <div>
-          <div className="fux-label">/ templates</div>
-          <h1 className="fux-heading text-4xl mt-1">Design Templates</h1>
+          <div className="fux-label">/ vorlagen</div>
+          <h1 className="fux-heading text-4xl mt-1">Design-Vorlagen</h1>
           <p className="text-muted-foreground text-sm mt-2">
             Wiederverwendbare Layouts für Creatives. Erstelle, dupliziere und passe globale Templates an.
           </p>
         </div>
         <button className="fux-btn-primary" onClick={openNew} data-testid="new-template-btn">
-          <Plus size={14} /> New template
+          <Plus size={14} /> Neue Vorlage
         </button>
       </header>
 
@@ -132,18 +132,18 @@ export default function Templates() {
               {t.is_global && <span className="fux-badge fux-badge-accent">global</span>}
             </div>
             <div className="flex items-center gap-3 mt-4 border-t border-border pt-3">
-              <button className="fux-label hover:text-primary" onClick={() => openEdit(t)} data-testid={`template-edit-${t.id}`}>edit</button>
+              <button className="fux-label hover:text-primary" onClick={() => openEdit(t)} data-testid={`template-edit-${t.id}`}>bearbeiten</button>
               <button className="fux-label hover:text-primary inline-flex items-center gap-1" onClick={() => duplicate(t)} data-testid={`template-duplicate-${t.id}`}>
-                <Copy size={12} /> duplicate
+                <Copy size={12} /> duplizieren
               </button>
               <button className="fux-label hover:text-destructive inline-flex items-center gap-1 ml-auto" onClick={() => remove(t)} data-testid={`template-delete-${t.id}`}>
-                <Trash2 size={12} /> delete
+                <Trash2 size={12} /> löschen
               </button>
             </div>
           </div>
         ))}
         {items.length === 0 && (
-          <div className="fux-card col-span-full text-muted-foreground">Keine Templates. Klicke oben rechts auf "New template".</div>
+          <div className="fux-card col-span-full text-muted-foreground">Keine Vorlagen. Klicke oben rechts auf &quot;Neue Vorlage&quot;.</div>
         )}
       </div>
 
@@ -152,8 +152,8 @@ export default function Templates() {
           <div className="fux-card w-full max-w-5xl">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <div className="fux-label">// {editing ? "edit template" : "new template"}</div>
-                <h2 className="fux-heading text-2xl mt-1">{editing ? editing.name : "Visual template builder"}</h2>
+                <div className="fux-label">// {editing ? "Vorlage bearbeiten" : "neue Vorlage"}</div>
+                <h2 className="fux-heading text-2xl mt-1">{editing ? editing.name : "Visueller Template-Builder"}</h2>
               </div>
               <button onClick={() => setOpen(false)}><X size={18} /></button>
             </div>
@@ -172,14 +172,14 @@ export default function Templates() {
                     </select>
                   </div>
                   <div>
-                    <label className="fux-label block mb-1.5">Style key</label>
+                    <label className="fux-label block mb-1.5">Stil-Schlüssel</label>
                     <select className="fux-input" value={form.style_key} onChange={(e) => setForm({ ...form, style_key: e.target.value })} data-testid="tf-style">
                       {STYLE_KEYS.map((s) => <option key={s}>{s}</option>)}
                     </select>
                   </div>
                 </div>
                 <div>
-                  <label className="fux-label block mb-1.5">Background</label>
+                  <label className="fux-label block mb-1.5">Hintergrund</label>
                   <div className="grid grid-cols-4 gap-2" data-testid="tf-bg-group">
                     {BACKGROUND_TYPES.map((b) => (
                       <button
@@ -197,11 +197,11 @@ export default function Templates() {
                   </div>
                 </div>
                 <div>
-                  <label className="fux-label block mb-1.5">Badge text</label>
+                  <label className="fux-label block mb-1.5">Badge-Text</label>
                   <input className="fux-input" value={form.config.badge} onChange={(e) => setForm({ ...form, config: { ...form.config, badge: e.target.value } })} data-testid="tf-badge" />
                 </div>
                 <div>
-                  <label className="fux-label block mb-1.5">Accent color</label>
+                  <label className="fux-label block mb-1.5">Akzentfarbe</label>
                   <div className="flex gap-2">
                     <input type="color" className="fux-input w-20 h-10 p-1" value={form.config.accent} onChange={(e) => setForm({ ...form, config: { ...form.config, accent: e.target.value } })} data-testid="tf-accent-color" />
                     <input className="fux-input" value={form.config.accent} onChange={(e) => setForm({ ...form, config: { ...form.config, accent: e.target.value } })} data-testid="tf-accent-hex" />
@@ -209,25 +209,25 @@ export default function Templates() {
                 </div>
                 <label className="flex items-center gap-2 fux-label pt-2">
                   <input type="checkbox" checked={form.is_global} onChange={(e) => setForm({ ...form, is_global: e.target.checked })} data-testid="tf-global" />
-                  Global (available to all customers)
+                  Global (für alle Kunden verfügbar)
                 </label>
                 <div className="flex items-center justify-end gap-2 pt-3 border-t border-border">
-                  <button type="button" className="fux-btn-ghost" onClick={() => setOpen(false)}>Cancel</button>
+                  <button type="button" className="fux-btn-ghost" onClick={() => setOpen(false)}>Abbrechen</button>
                   <button type="submit" className="fux-btn-primary" disabled={busy} data-testid="tf-submit">
-                    <Save size={14} /> {busy ? "Saving…" : editing ? "Update" : "Create"}
+                    <Save size={14} /> {busy ? "Speichere…" : editing ? "Aktualisieren" : "Anlegen"}
                   </button>
                 </div>
               </form>
 
               <div className="col-span-12 md:col-span-7">
-                <div className="fux-label mb-2">// live preview · {FORMAT_SIZES[form.format]?.w}×{FORMAT_SIZES[form.format]?.h}</div>
+                <div className="fux-label mb-2">// Live-Vorschau · {FORMAT_SIZES[form.format]?.w}×{FORMAT_SIZES[form.format]?.h}</div>
                 <CreativePreview
                   customer={demoCustomer}
                   template={templatePreview}
                   format={form.format}
-                  headline={form.config.badge || form.name || "Sample headline"}
-                  subline="Live preview of your template configuration."
-                  cta="Call to action"
+                  headline={form.config.badge || form.name || "Beispiel-Headline"}
+                  subline="Live-Vorschau deiner Template-Konfiguration."
+                  cta="Handlungsaufruf"
                   maxWidth={520}
                   testid="template-live-preview"
                 />
