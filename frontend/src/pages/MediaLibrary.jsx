@@ -15,7 +15,7 @@ const CATEGORY_COLORS = {
   "News Image": "#8A94A6",
 };
 
-const AssetImage = ({ asset }) => {
+const AssetImage = ({ asset, onOpen }) => {
   const [failed, setFailed] = useState(false);
   const src = resolveUpload(asset.file_path);
   if (failed || !src) {
@@ -29,9 +29,51 @@ const AssetImage = ({ asset }) => {
     <img
       src={src}
       alt={asset.original_name || ""}
-      className="w-full aspect-square object-cover border border-border bg-secondary"
+      className="w-full aspect-square object-cover border border-border bg-secondary cursor-zoom-in"
       onError={() => setFailed(true)}
+      onClick={() => onOpen(asset)}
     />
+  );
+};
+
+const Lightbox = ({ asset, onClose }) => {
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  if (!asset) return null;
+  const src = resolveUpload(asset.file_path);
+
+  return (
+    <div
+      className="fixed inset-0 bg-background/95 flex items-center justify-center z-[60] p-6"
+      onClick={onClose}
+      data-testid="media-lightbox"
+    >
+      <button
+        className="absolute top-4 right-4 text-foreground hover:text-primary"
+        onClick={onClose}
+        data-testid="lightbox-close"
+      >
+        <X size={28} />
+      </button>
+      <img
+        src={src}
+        alt={asset.original_name || ""}
+        className="max-w-full max-h-full object-contain border border-border"
+        onClick={(e) => e.stopPropagation()}
+      />
+      {asset.original_name && (
+        <div
+          className="absolute bottom-4 left-1/2 -translate-x-1/2 fux-label text-muted-foreground"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {asset.original_name}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -44,6 +86,7 @@ export default function MediaLibrary() {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [form, setForm] = useState({ category: "Background", customer_id: "", tags: "", source: "", license_note: "" });
   const [uploading, setUploading] = useState(false);
+  const [lightboxAsset, setLightboxAsset] = useState(null);
   const fileRef = useRef(null);
 
   const load = () => {
@@ -127,7 +170,7 @@ export default function MediaLibrary() {
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
         {assets.map((a) => (
           <div key={a.id} className="fux-card p-3" data-testid={`asset-${a.id}`}>
-            <AssetImage asset={a} />
+            <AssetImage asset={a} onOpen={setLightboxAsset} />
             <div className="mt-2 flex items-center gap-1 flex-wrap">
               <span
                 className="fux-badge"
@@ -199,6 +242,8 @@ export default function MediaLibrary() {
           </div>
         </div>
       )}
+
+      <Lightbox asset={lightboxAsset} onClose={() => setLightboxAsset(null)} />
     </div>
   );
 }
