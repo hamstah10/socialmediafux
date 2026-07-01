@@ -43,6 +43,13 @@ briefing in the initial task message.
 - [x] Media Library + Media Picker (2026-06)
 - [x] Free-form Layout Editor with layers (2026-07)
 - [x] Layout Editor Pro: corner resize handles, snap-to-grid, font selector (Google Fonts), named layer groups (2026-07)
+- [x] **Template-Speicher-System + Bulk Generator** (2026-07):
+  - `layout_templates` collection + CRUD API
+  - Layer-"Rollen" (headline/subline/cta/website_slot/image_slot/logo_slot)
+  - Save-as-Template dialog im LayoutEditor (customer- oder global-scope)
+  - Load-Template dropdown im LayoutEditor
+  - Neue Seite `/bulk-generator` — mehrere News-Items auswählen, Template wählen, in einem Zug 1..N Creatives generieren
+  - `POST /api/creatives/bulk-from-news` mit paralleler AI-Generierung via asyncio.gather
 
 ## P0 backlog
 - Playwright-based PNG export for creatives (VPS)

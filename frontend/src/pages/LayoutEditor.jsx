@@ -5,12 +5,25 @@ import { toast } from "sonner";
 import {
   Type, Image as ImageIcon, Square, Trash2, Copy, ChevronUp,
   ChevronDown, Save, Layers, MousePointer2, Grid3x3, FolderPlus,
-  Folder, Eye, EyeOff, Link2, Link2Off, Pencil,
+  Folder, Eye, EyeOff, Link2, Link2Off, Pencil, BookmarkPlus, FileText,
 } from "lucide-react";
 import { FORMAT_SIZES } from "../components/CreativePreview";
 import MediaPicker from "../components/MediaPicker";
 
 const FORMATS = Object.entries(FORMAT_SIZES).map(([key, v]) => ({ key, ...v }));
+
+const TEXT_ROLES = [
+  { key: "static", label: "Statisch" },
+  { key: "headline", label: "Headline (auto)" },
+  { key: "subline", label: "Subline (auto)" },
+  { key: "cta", label: "CTA (auto)" },
+  { key: "website_slot", label: "Website (auto)" },
+];
+const IMAGE_ROLES = [
+  { key: "static", label: "Statisch" },
+  { key: "image_slot", label: "Bild-Slot (News/Auto)" },
+  { key: "logo_slot", label: "Logo-Slot (Kunde)" },
+];
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
@@ -49,17 +62,17 @@ const newTextLayer = () => ({
   id: uid(), type: "text", x: 8, y: 10, w: 60, h: 15, z: 10,
   text: "Neuer Text", fontSize: 4.5, fontWeight: 700, color: "#F5F7FA",
   bg: "", align: "left", upper: true, opacity: 1, radius: 0,
-  fontFamily: "Rajdhani", groupId: null, visible: true,
+  fontFamily: "Rajdhani", groupId: null, visible: true, role: "static",
 });
 const newBoxLayer = (color = "#B4E600") => ({
   id: uid(), type: "box", x: 8, y: 80, w: 25, h: 8, z: 5,
   bg: color, opacity: 1, radius: 0,
-  groupId: null, visible: true,
+  groupId: null, visible: true, role: "static",
 });
 const newImageLayer = (src) => ({
   id: uid(), type: "image", x: 60, y: 8, w: 30, h: 20, z: 8,
   src, fit: "contain", opacity: 1, radius: 0,
-  groupId: null, visible: true,
+  groupId: null, visible: true, role: "static",
 });
 
 // ─── Snap helper (values in %) ────────────────────────────────
@@ -216,6 +229,14 @@ const LayerItem = ({ l, selectedId, onToggleVisible, onSelect }) => (
         <span className="mono uppercase">{l.type}</span>
         <span className="ml-2 truncate">{l.type === "text" ? l.text.slice(0, 20) : l.type === "image" ? "img" : "box"}</span>
       </button>
+      {l.role && l.role !== "static" && (
+        <span
+          className="px-1 py-0.5 text-[9px] uppercase border border-primary text-primary"
+          title={`Rolle: ${l.role}`}
+        >
+          {l.role.replace("_slot", "")}
+        </span>
+      )}
       <span className="fux-label">z{l.z}</span>
     </div>
   </li>
@@ -246,6 +267,14 @@ export default function LayoutEditor() {
   const [snapOn, setSnapOn] = useState(true);
   const [gridSize, setGridSize] = useState(10); // px on visual canvas mapping to %
   // gridSize is % because coordinates are stored in %; 5/10/20 → % steps
+
+  // Layout templates
+  const [layoutTemplates, setLayoutTemplates] = useState([]);
+  const [loadedTemplateId, setLoadedTemplateId] = useState("");
+  const [saveTemplateOpen, setSaveTemplateOpen] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [templateScope, setTemplateScope] = useState("customer"); // 'customer' | 'global'
+
   const canvasRef = useRef(null);
 
   // Load Google Fonts on the fly for custom font families
@@ -264,6 +293,52 @@ export default function LayoutEditor() {
       setCustomerId(r.data[0]?.id || "");
     });
   }, []);
+
+  // Reload layout templates when customer changes
+  useEffect(() => {
+    if (!customerId) return;
+    api.get("/layout-templates", { params: { customer_id: customerId, include_global: true } })
+      .then((r) => setLayoutTemplates(r.data));
+  }, [customerId]);
+
+  const loadTemplate = async (id) => {
+    if (!id) return;
+    try {
+      const r = await api.get(`/layout-templates/${id}`);
+      setLayers(r.data.layers || []);
+      setGroups(r.data.groups || []);
+      setFormat(r.data.format || "instagram_square");
+      setSelectedId(null);
+      setSelectedGroupId(null);
+      setLoadedTemplateId(id);
+      toast.success(`Template geladen: ${r.data.name}`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Konnte Template nicht laden");
+    }
+  };
+
+  const saveAsTemplate = async () => {
+    const name = templateName.trim();
+    if (!name) return toast.error("Name eingeben");
+    if (layers.length === 0) return toast.error("Keine Layer zum Speichern");
+    const payload = {
+      name,
+      customer_id: templateScope === "customer" ? customerId : null,
+      is_global: templateScope === "global",
+      format,
+      layers, groups,
+    };
+    try {
+      const r = await api.post("/layout-templates", payload);
+      setLayoutTemplates((ts) => [r.data, ...ts]);
+      setLoadedTemplateId(r.data.id);
+      setSaveTemplateOpen(false);
+      setTemplateName("");
+      toast.success(`Template "${name}" gespeichert`);
+    } catch (e) {
+      toast.error(e?.response?.data?.detail || "Speichern fehlgeschlagen");
+    }
+  };
 
   const customer = useMemo(() => customers.find((c) => c.id === customerId), [customers, customerId]);
   const selected = layers.find((l) => l.id === selectedId);
@@ -393,7 +468,33 @@ export default function LayoutEditor() {
             Freies Layer-System — Ecken-Handles zum Skalieren, Snap-to-Grid, Fonts &amp; Gruppen.
           </p>
         </div>
-        <div className="flex items-end gap-2">
+        <div className="flex items-end gap-2 flex-wrap justify-end">
+          {/* Layout Template loader */}
+          <div className="fux-card p-2 flex items-center gap-2" data-testid="template-toolbar">
+            <div className="fux-label flex items-center gap-1"><FileText size={11} /> Template</div>
+            <select
+              value={loadedTemplateId}
+              onChange={(e) => loadTemplate(e.target.value)}
+              className="fux-input h-7 text-[11px] w-44"
+              data-testid="load-template"
+            >
+              <option value="">— laden —</option>
+              {layoutTemplates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.is_global ? "🌐 " : ""}{t.name} · {t.format}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={() => setSaveTemplateOpen(true)}
+              className="fux-btn-ghost text-[10px] px-2 py-1"
+              data-testid="save-as-template"
+              title="Als Template speichern"
+            >
+              <BookmarkPlus size={12} /> Speichern als…
+            </button>
+          </div>
+
           {/* Snap toolbar */}
           <div className="fux-card p-2 flex items-center gap-2" data-testid="snap-toolbar">
             <button
@@ -641,6 +742,30 @@ export default function LayoutEditor() {
                 </select>
               </label>
 
+              {/* Role selector — template placeholders */}
+              {(selected.type === "text" || selected.type === "image") && (
+                <label className="block">
+                  <div className="fux-label mb-1 flex items-center gap-1">
+                    <BookmarkPlus size={10} /> Rolle (Template-Slot)
+                  </div>
+                  <select
+                    className="fux-input"
+                    value={selected.role || "static"}
+                    onChange={(e) => updateSelected({ role: e.target.value })}
+                    data-testid="layer-role-select"
+                  >
+                    {(selected.type === "text" ? TEXT_ROLES : IMAGE_ROLES).map((r) => (
+                      <option key={r.key} value={r.key}>{r.label}</option>
+                    ))}
+                  </select>
+                  {selected.role && selected.role !== "static" && (
+                    <div className="fux-label mt-1 text-[10px] text-primary opacity-80">
+                      ↳ Wird beim Bulk-Generate automatisch ersetzt.
+                    </div>
+                  )}
+                </label>
+              )}
+
               {selected.type === "text" && (
                 <>
                   <label className="block">
@@ -762,6 +887,79 @@ export default function LayoutEditor() {
           }
         }}
       />
+
+      {/* Save as Template dialog */}
+      {saveTemplateOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur flex items-center justify-center p-4"
+          onClick={() => setSaveTemplateOpen(false)}
+          data-testid="save-template-dialog"
+        >
+          <div
+            className="fux-card w-full max-w-md space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <div className="fux-heading text-lg flex items-center gap-2">
+                <BookmarkPlus size={16} /> Als Template speichern
+              </div>
+              <button onClick={() => setSaveTemplateOpen(false)} className="fux-label hover:text-primary">✕</button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Speichere dieses Layout inkl. Layer &amp; Gruppen als wiederverwendbares Template.
+              Setze Text-/Bild-Layer auf eine &quot;Rolle&quot;, damit sie beim Bulk-Generate automatisch ersetzt werden.
+            </p>
+            <label className="block">
+              <div className="fux-label mb-1">Name</div>
+              <input
+                autoFocus
+                className="fux-input"
+                value={templateName}
+                onChange={(e) => setTemplateName(e.target.value)}
+                placeholder="z.B. Instagram · News-Post V1"
+                data-testid="template-name-input"
+              />
+            </label>
+            <div>
+              <div className="fux-label mb-1">Sichtbarkeit</div>
+              <div className="grid grid-cols-2 gap-1">
+                {[
+                  { key: "customer", label: `Kunde (${customer?.name || "—"})` },
+                  { key: "global", label: "🌐 Global (alle Kunden)" },
+                ].map((s) => (
+                  <button
+                    key={s.key}
+                    onClick={() => setTemplateScope(s.key)}
+                    className={`px-2 py-1.5 text-[10px] uppercase border truncate ${
+                      templateScope === s.key
+                        ? "border-primary text-primary"
+                        : "border-border text-muted-foreground"
+                    }`}
+                    data-testid={`scope-${s.key}`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="fux-label text-[10px] opacity-70">
+              {layers.length} Layer · {groups.length} Gruppe(n) · Format: {format}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button className="fux-btn-ghost" onClick={() => setSaveTemplateOpen(false)}>
+                Abbrechen
+              </button>
+              <button
+                className="fux-btn-primary"
+                onClick={saveAsTemplate}
+                data-testid="template-save-confirm"
+              >
+                <BookmarkPlus size={12} /> Speichern
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

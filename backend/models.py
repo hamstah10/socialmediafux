@@ -221,3 +221,37 @@ class ApprovalCreateRequest(BaseModel):
 
 class ApprovalDecision(BaseModel):
     comment: Optional[str] = None
+
+
+# ---------- Layout Templates (Layout Editor save/load) ----------
+class LayoutTemplateCreate(BaseModel):
+    name: str
+    customer_id: Optional[str] = None  # None → global template
+    is_global: bool = False
+    format: str = "instagram_square"
+    layers: List[dict] = Field(default_factory=list)
+    groups: List[dict] = Field(default_factory=list)
+    thumbnail_path: Optional[str] = None
+
+
+class LayoutTemplateUpdate(BaseModel):
+    name: Optional[str] = None
+    customer_id: Optional[str] = None
+    is_global: Optional[bool] = None
+    format: Optional[str] = None
+    layers: Optional[List[dict]] = None
+    groups: Optional[List[dict]] = None
+    thumbnail_path: Optional[str] = None
+
+
+# ---------- Bulk generation ----------
+class BulkFromNewsRequest(BaseModel):
+    customer_id: str
+    layout_template_id: str
+    news_item_ids: List[str]
+    platform: str = "instagram"
+    content_type: str = "post"
+    tone: Optional[str] = None
+    cta: Optional[str] = None
+    target_link: Optional[str] = None
+    custom_prompt: Optional[str] = None

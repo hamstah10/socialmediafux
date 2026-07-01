@@ -29,6 +29,7 @@ from routers.media_router import router as media_router  # noqa: E402
 from routers.news_items_router import router as news_items_router  # noqa: E402
 from routers.news_sources_router import router as news_sources_router  # noqa: E402
 from routers.templates_router import router as templates_router  # noqa: E402
+from routers.layout_templates_router import router as layout_templates_router  # noqa: E402
 from seed import run_seed  # noqa: E402
 
 
@@ -84,6 +85,7 @@ api_router.include_router(news_items_router)
 api_router.include_router(generator_router)
 api_router.include_router(creatives_router)
 api_router.include_router(templates_router)
+api_router.include_router(layout_templates_router)
 api_router.include_router(approvals_router)
 api_router.include_router(media_router)
 

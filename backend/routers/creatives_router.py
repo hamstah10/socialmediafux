@@ -8,7 +8,8 @@ from fastapi.responses import StreamingResponse
 
 from auth import get_current_user
 from db import base_fields, find_many, find_one, insert_one, update_one, delete_one
-from models import CreativeCreate, CreativeUpdate
+from models import CreativeCreate, CreativeUpdate, BulkFromNewsRequest
+from services.ai_service import generate_content
 from services.creative import build_preview_html
 
 router = APIRouter(prefix="/creatives", tags=["creatives"])
@@ -186,3 +187,156 @@ async def export_zip(creative_id: str, _=Depends(get_current_user)):
         media_type="application/zip",
         headers={"Content-Disposition": f'attachment; filename="{safe_name}-{creative_id[:8]}.zip"'},
     )
+
+
+# ── Bulk generation from a Layout Template + list of News Items ─────────────
+def _apply_template_substitutions(layers: list[dict], *, headline: str, body: str,
+                                    cta: str, website: str, logo_url: str,
+                                    news_image: str) -> list[dict]:
+    """Return a fresh copy of layers with role-based text/image substitutions.
+
+    Supported roles:
+      - text roles:  headline | subline | cta | website_slot
+      - image roles: image_slot (news image) | logo_slot (customer logo)
+    """
+    subline = (body or "").strip().split("\n\n", 1)[0][:220]
+    out: list[dict] = []
+    for src in layers or []:
+        layer = dict(src)  # shallow copy — layers are flat
+        role = layer.get("role") or "static"
+        if layer.get("type") == "text":
+            if role == "headline" and headline:
+                layer["text"] = headline
+            elif role == "subline" and subline:
+                layer["text"] = subline
+            elif role == "cta" and cta:
+                layer["text"] = cta
+            elif role == "website_slot" and website:
+                layer["text"] = website
+        elif layer.get("type") == "image":
+            if role == "image_slot" and news_image:
+                layer["src"] = news_image
+            elif role == "logo_slot" and logo_url:
+                layer["src"] = logo_url
+        out.append(layer)
+    return out
+
+
+@router.post("/bulk-from-news", status_code=status.HTTP_201_CREATED)
+async def bulk_from_news(payload: BulkFromNewsRequest, _=Depends(get_current_user)):
+    """Generate AI content + a creative for every selected news item, using a
+    saved Layout Template as design. AI calls run in parallel for speed.
+
+    Returns: {"created": [{content_id, creative_id, news_item_id, headline}, ...]}
+    """
+    import asyncio
+
+    customer = await find_one("customers", {"id": payload.customer_id})
+    if not customer:
+        raise HTTPException(status_code=404, detail="Customer not found")
+    template = await find_one("layout_templates", {"id": payload.layout_template_id})
+    if not template:
+        raise HTTPException(status_code=404, detail="Layout template not found")
+    if not payload.news_item_ids:
+        raise HTTPException(status_code=400, detail="No news items selected")
+
+    tone = payload.tone or customer.get("tone_of_voice") or "technisch"
+    logo_url = customer.get("logo_path") or ""
+    website = customer.get("website") or ""
+
+    # Fetch all news items in parallel
+    news_docs = await asyncio.gather(*[
+        find_one("news_items", {"id": nid}) for nid in payload.news_item_ids
+    ])
+
+    # Run AI generation for all valid news items in parallel
+    valid_pairs = [(nid, n) for nid, n in zip(payload.news_item_ids, news_docs) if n]
+    ai_tasks = [
+        generate_content(
+            customer=customer, news=n, platform=payload.platform,
+            tone=tone, cta=payload.cta, target_link=payload.target_link,
+            custom_prompt=payload.custom_prompt,
+        )
+        for _, n in valid_pairs
+    ]
+    ai_results = await asyncio.gather(*ai_tasks, return_exceptions=True)
+
+    created: list[dict] = []
+    errors: list[dict] = []
+
+    for nid, n in zip(payload.news_item_ids, news_docs):
+        if not n:
+            errors.append({"news_item_id": nid, "error": "not found"})
+
+    for (nid, news), result in zip(valid_pairs, ai_results):
+        if isinstance(result, Exception):
+            errors.append({"news_item_id": nid, "error": f"gen: {result}"})
+            continue
+
+        content_doc = {
+            **base_fields(),
+            "customer_id": payload.customer_id,
+            "news_item_id": nid,
+            "platform": payload.platform,
+            "content_type": payload.content_type,
+            "title": result.get("title", "")[:200],
+            "body": result.get("body", ""),
+            "hashtags": result.get("hashtags", []),
+            "cta": result.get("cta") or payload.cta or "",
+            "target_link": payload.target_link or result.get("target_link") or "",
+            "tone": tone,
+            "meta_title": result.get("meta_title", ""),
+            "meta_description": result.get("meta_description", ""),
+            "status": "draft",
+        }
+        await insert_one("generated_contents", content_doc)
+        await update_one("news_items", {"id": nid}, {"status": "used"})
+
+        subst_layers = _apply_template_substitutions(
+            template.get("layers") or [],
+            headline=content_doc["title"],
+            body=content_doc["body"],
+            cta=content_doc["cta"] or "Jetzt anfragen",
+            website=website,
+            logo_url=logo_url,
+            news_image=news.get("image_url") or "",
+        )
+
+        preview = build_preview_html(
+            customer=customer, format=template.get("format", "instagram_square"),
+            headline=content_doc["title"], subline="",
+            cta="", logo_url=logo_url,
+            background_image_url="",
+            template=None,
+            layers=subst_layers,
+        )
+
+        creative_doc = {
+            **base_fields(),
+            "customer_id": payload.customer_id,
+            "generated_content_id": content_doc["id"],
+            "design_template_id": None,
+            "format": template.get("format", "instagram_square"),
+            "headline": content_doc["title"],
+            "subline": "",
+            "cta": content_doc["cta"],
+            "logo_path": logo_url,
+            "background_image_path": None,
+            "logo_override_path": None,
+            "image_path": None,
+            "preview_html": preview,
+            "layers": subst_layers,
+            "groups": template.get("groups") or [],
+            "layout_template_id": template.get("id"),
+            "status": "draft",
+        }
+        await insert_one("creatives", creative_doc)
+
+        created.append({
+            "news_item_id": nid,
+            "content_id": content_doc["id"],
+            "creative_id": creative_doc["id"],
+            "headline": content_doc["title"],
+        })
+
+    return {"created": created, "errors": errors, "count": len(created)}

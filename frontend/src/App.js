@@ -18,6 +18,7 @@ import Archive from "@/pages/Archive";
 import Templates from "@/pages/Templates";
 import MediaLibrary from "@/pages/MediaLibrary";
 import LayoutEditor from "@/pages/LayoutEditor";
+import BulkGenerator from "@/pages/BulkGenerator";
 import Settings from "@/pages/Settings";
 
 const Protected = ({ children }) => {
@@ -57,6 +58,7 @@ function App() {
             <Route path="/content-generator" element={<ContentGenerator />} />
             <Route path="/creative-editor" element={<CreativeEditor />} />
             <Route path="/layout-editor" element={<LayoutEditor />} />
+            <Route path="/bulk-generator" element={<BulkGenerator />} />
             <Route path="/archive" element={<Archive />} />
             <Route path="/templates" element={<Templates />} />
             <Route path="/media-library" element={<MediaLibrary />} />
