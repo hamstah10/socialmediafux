@@ -20,11 +20,13 @@ const emptyForm = () => ({
   style_key: "ecu_update",
   background_type: "grid",
   is_global: true,
-  config: { badge: "NEUES ECU-UPDATE", accent: "#B4E600" },
+  config: { badge: "NEUES ECU-UPDATE", accent: "#B4E600", background_color: "" },
 });
 
 export default function Templates() {
   const [items, setItems] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [previewCustomerId, setPreviewCustomerId] = useState("");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm());
@@ -32,6 +34,9 @@ export default function Templates() {
 
   const load = () => api.get("/templates").then((r) => setItems(r.data));
   useEffect(() => { load(); }, []);
+  useEffect(() => { api.get("/customers").then((r) => setCustomers(r.data)); }, []);
+
+  const previewCustomer = customers.find((c) => c.id === previewCustomerId) || demoCustomer;
 
   const openNew = () => { setEditing(null); setForm(emptyForm()); setOpen(true); };
   const openEdit = (t) => {
@@ -42,7 +47,7 @@ export default function Templates() {
       style_key: t.style_key,
       background_type: t.background_type,
       is_global: t.is_global,
-      config: { badge: t.config?.badge || "", accent: t.config?.accent || "#B4E600" },
+      config: { badge: t.config?.badge || "", accent: t.config?.accent || "#B4E600", background_color: t.config?.background_color || "" },
     });
     setOpen(true);
   };
@@ -54,7 +59,7 @@ export default function Templates() {
       style_key: t.style_key,
       background_type: t.background_type,
       is_global: t.is_global,
-      config: { ...(t.config || {}), badge: t.config?.badge || "", accent: t.config?.accent || "#B4E600" },
+      config: { ...(t.config || {}), badge: t.config?.badge || "", accent: t.config?.accent || "#B4E600", background_color: t.config?.background_color || "" },
     });
     setOpen(true);
   };
@@ -108,12 +113,25 @@ export default function Templates() {
         </button>
       </header>
 
+      <div className="flex items-center gap-3">
+        <label className="fux-label">Vorschau mit Kunde</label>
+        <select
+          className="fux-input max-w-xs"
+          value={previewCustomerId}
+          onChange={(e) => setPreviewCustomerId(e.target.value)}
+          data-testid="preview-customer-select"
+        >
+          <option value="">Demo-Branding</option>
+          {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        </select>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((t) => (
           <div key={t.id} className="fux-card" data-testid={`template-${t.id}`}>
             <div className="mb-3">
               <CreativePreview
-                customer={demoCustomer}
+                customer={previewCustomer}
                 template={{ background_type: t.background_type, config: t.config }}
                 format={t.format}
                 headline={t.config?.badge || t.name}
@@ -207,6 +225,38 @@ export default function Templates() {
                     <input className="fux-input" value={form.config.accent} onChange={(e) => setForm({ ...form, config: { ...form.config, accent: e.target.value } })} data-testid="tf-accent-hex" />
                   </div>
                 </div>
+                <div>
+                  <label className="fux-label block mb-1.5">Hintergrundfarbe</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="color"
+                      className="fux-input w-20 h-10 p-1"
+                      value={form.config.background_color || previewCustomer.primary_color || "#080D1A"}
+                      onChange={(e) => setForm({ ...form, config: { ...form.config, background_color: e.target.value } })}
+                      data-testid="tf-bgcolor-color"
+                    />
+                    <input
+                      className="fux-input"
+                      placeholder={`Kunde: ${previewCustomer.primary_color || "#080D1A"}`}
+                      value={form.config.background_color || ""}
+                      onChange={(e) => setForm({ ...form, config: { ...form.config, background_color: e.target.value } })}
+                      data-testid="tf-bgcolor-hex"
+                    />
+                    {form.config.background_color && (
+                      <button
+                        type="button"
+                        className="fux-label hover:text-primary whitespace-nowrap"
+                        onClick={() => setForm({ ...form, config: { ...form.config, background_color: "" } })}
+                        data-testid="tf-bgcolor-reset"
+                      >
+                        zurücksetzen
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Leer lassen, um die Primärfarbe des ausgewählten Kunden zu übernehmen.
+                  </p>
+                </div>
                 <label className="flex items-center gap-2 fux-label pt-2">
                   <input type="checkbox" checked={form.is_global} onChange={(e) => setForm({ ...form, is_global: e.target.checked })} data-testid="tf-global" />
                   Global (für alle Kunden verfügbar)
@@ -222,7 +272,7 @@ export default function Templates() {
               <div className="col-span-12 md:col-span-7">
                 <div className="fux-label mb-2">// Live-Vorschau · {FORMAT_SIZES[form.format]?.w}×{FORMAT_SIZES[form.format]?.h}</div>
                 <CreativePreview
-                  customer={demoCustomer}
+                  customer={previewCustomer}
                   template={templatePreview}
                   format={form.format}
                   headline={form.config.badge || form.name || "Beispiel-Headline"}

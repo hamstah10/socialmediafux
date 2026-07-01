@@ -122,7 +122,7 @@ def build_preview_html(*, customer: dict, format: str, headline: str,
     config = template.get("config") or {}
 
     accent = config.get("accent") or customer.get("accent_color") or "#B4E600"
-    primary = customer.get("primary_color") or "#080D1A"
+    primary = config.get("background_color") or customer.get("primary_color") or "#080D1A"
     name = customer.get("name") or ""
     website = customer.get("website") or ""
     badge_text = config.get("badge") or (customer.get("tone_of_voice") or "Update")
