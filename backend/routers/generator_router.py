@@ -1,14 +1,31 @@
-"""AI content generation + hashtags + compliance."""
+"""AI content generation + hashtags + compliance + approval workflow."""
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth import get_current_user
-from db import base_fields, find_many, find_one, insert_one, update_one
-from models import ComplianceRequest, GenerateContentRequest, GeneratedContentUpdate, HashtagRequest
+from db import base_fields, db, find_many, find_one, insert_one, update_one
+from models import (
+    ComplianceRequest,
+    GenerateContentRequest,
+    GeneratedContentUpdate,
+    HashtagRequest,
+    TransitionRequest,
+)
 from services.ai_service import generate_content
 from services.compliance import check_compliance
 from services.hashtag import generate_hashtags
 
 router = APIRouter(prefix="/generator", tags=["generator"])
+
+
+# --- Allowed status transitions ---------------------------------------------
+ALLOWED_TRANSITIONS: dict[str, set[str]] = {
+    "draft": {"review", "archived"},
+    "review": {"approved", "draft", "archived"},          # approve / request-changes
+    "approved": {"scheduled", "published", "review", "archived"},
+    "scheduled": {"published", "approved", "archived"},
+    "published": {"archived"},
+    "archived": {"draft"},                                # un-archive
+}
 
 
 @router.post("/content", status_code=status.HTTP_201_CREATED)
@@ -99,3 +116,52 @@ async def update_generated(content_id: str, payload: GeneratedContentUpdate,
     if not updated:
         raise HTTPException(status_code=404, detail="Not found")
     return updated
+
+
+# --- Approval workflow ------------------------------------------------------
+@router.post("/contents/{content_id}/transition")
+async def transition(content_id: str, payload: TransitionRequest,
+                      current=Depends(get_current_user)):
+    """Move a content item to a new status if the transition is allowed."""
+    content = await find_one("generated_contents", {"id": content_id})
+    if not content:
+        raise HTTPException(status_code=404, detail="Not found")
+
+    current_status = content.get("status", "draft")
+    target = payload.status
+
+    allowed = ALLOWED_TRANSITIONS.get(current_status, set())
+    if target not in allowed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Transition {current_status} → {target} not allowed. "
+                   f"Allowed: {sorted(allowed) or '(none)'}",
+        )
+
+    updated = await update_one("generated_contents", {"id": content_id}, {"status": target})
+
+    event = {
+        **base_fields(),
+        "content_id": content_id,
+        "from_status": current_status,
+        "to_status": target,
+        "note": payload.note or "",
+        "by_user_id": current.get("id"),
+        "by_user_email": current.get("email"),
+    }
+    await db["approval_events"].insert_one(event.copy())
+    event.pop("_id", None)
+
+    return {"content": updated, "event": event}
+
+
+@router.get("/contents/{content_id}/events")
+async def content_events(content_id: str, _=Depends(get_current_user)):
+    content = await find_one("generated_contents", {"id": content_id})
+    if not content:
+        raise HTTPException(status_code=404, detail="Not found")
+    events = await find_many(
+        "approval_events", {"content_id": content_id},
+        sort_field="created_at", sort_dir=-1,
+    )
+    return {"events": events, "allowed_transitions": sorted(ALLOWED_TRANSITIONS.get(content.get("status", "draft"), set()))}

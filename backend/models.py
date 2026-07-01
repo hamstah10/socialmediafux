@@ -171,3 +171,9 @@ class TemplateUpdate(BaseModel):
     background_type: Optional[str] = None
     is_global: Optional[bool] = None
     config: Optional[dict] = None
+
+
+# ---------- Approval workflow ----------
+class TransitionRequest(BaseModel):
+    status: str  # target status
+    note: Optional[str] = None

@@ -1,9 +1,21 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { api } from "../lib/api";
+import { toast } from "sonner";
+import { CheckCircle2, XCircle, Send, ArrowRight, MessageSquare, X, RotateCcw, Archive as ArchiveIcon } from "lucide-react";
 
 const STATUSES = ["all","draft","review","approved","scheduled","published","archived"];
 const PLATFORMS = ["all","instagram","facebook","linkedin","google_business","blog","newsletter","whatsapp"];
+
+// Icons + label for the "primary" action of each source status.
+// The backend enforces which transitions are allowed; the UI just surfaces them.
+const ACTION_LABELS = {
+  review:    { icon: Send,        label: "Submit for review", cls: "fux-btn-primary" },
+  approved:  { icon: CheckCircle2, label: "Approve",           cls: "fux-btn-primary" },
+  draft:     { icon: RotateCcw,   label: "Send back to draft", cls: "fux-btn-ghost" },
+  published: { icon: Send,        label: "Mark published",     cls: "fux-btn-primary" },
+  scheduled: { icon: ArrowRight,  label: "Schedule",           cls: "fux-btn-ghost" },
+  archived:  { icon: ArchiveIcon, label: "Archive",            cls: "fux-btn-ghost" },
+};
 
 export default function Archive() {
   const [items, setItems] = useState([]);
@@ -11,6 +23,11 @@ export default function Archive() {
   const [customerId, setCustomerId] = useState("");
   const [platform, setPlatform] = useState("all");
   const [status, setStatus] = useState("all");
+  const [detail, setDetail] = useState(null); // selected content
+  const [allowed, setAllowed] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const load = () => {
     const q = new URLSearchParams();
@@ -23,11 +40,46 @@ export default function Archive() {
   useEffect(() => { api.get("/customers").then((r) => setCustomers(r.data)); }, []);
   useEffect(() => { load(); }, [customerId, platform, status]);
 
+  const openDetail = async (c) => {
+    setDetail(c);
+    setNote("");
+    try {
+      const r = await api.get(`/generator/contents/${c.id}/events`);
+      setEvents(r.data.events || []);
+      setAllowed(r.data.allowed_transitions || []);
+    } catch {
+      setEvents([]); setAllowed([]);
+    }
+  };
+
+  const transition = async (target) => {
+    if (!detail) return;
+    setBusy(true);
+    try {
+      const r = await api.post(`/generator/contents/${detail.id}/transition`, {
+        status: target, note: note || null,
+      });
+      toast.success(`Moved to ${target}`);
+      setDetail(r.data.content);
+      setNote("");
+      // Refresh events + allowed
+      const ev = await api.get(`/generator/contents/${detail.id}/events`);
+      setEvents(ev.data.events || []);
+      setAllowed(ev.data.allowed_transitions || []);
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Transition failed");
+    } finally { setBusy(false); }
+  };
+
   return (
     <div className="space-y-6" data-testid="archive-page">
       <header>
         <div className="fux-label">/ archive</div>
-        <h1 className="fux-heading text-4xl mt-1">Archive</h1>
+        <h1 className="fux-heading text-4xl mt-1">Archive & Approvals</h1>
+        <p className="text-muted-foreground text-sm mt-2">
+          Alle generierten Inhalte. Klick auf einen Eintrag öffnet den Freigabe-Workflow.
+        </p>
       </header>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -46,7 +98,12 @@ export default function Archive() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {items.map((c) => (
-          <div key={c.id} className="fux-card" data-testid={`arch-item-${c.id}`}>
+          <button
+            key={c.id}
+            onClick={() => openDetail(c)}
+            className="fux-card text-left hover:border-primary transition-colors"
+            data-testid={`arch-item-${c.id}`}
+          >
             <div className="flex items-center justify-between mb-2">
               <span className="fux-badge">{c.platform}</span>
               <span className="fux-badge fux-badge-accent">{c.status}</span>
@@ -57,12 +114,106 @@ export default function Archive() {
               {(c.hashtags || []).slice(0, 6).map((h) => <span key={h} className="fux-badge">{h}</span>)}
             </div>
             <div className="fux-label mt-3">{c.tone} · {c.created_at?.slice(0, 10)}</div>
-          </div>
+          </button>
         ))}
         {items.length === 0 && (
           <div className="fux-card col-span-full text-center text-muted-foreground">Keine Inhalte gefunden.</div>
         )}
       </div>
+
+      {detail && (
+        <div className="fixed inset-0 bg-background/85 flex items-center justify-center z-50 p-6 overflow-y-auto" data-testid="content-detail-modal">
+          <div className="fux-card w-full max-w-3xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="fux-label">// {detail.platform} · {detail.tone}</div>
+                <h2 className="fux-heading text-2xl mt-1">{detail.title || "(untitled)"}</h2>
+              </div>
+              <button onClick={() => setDetail(null)} data-testid="close-detail"><X size={18} /></button>
+            </div>
+
+            <div className="flex items-center gap-2 mb-4">
+              <span className="fux-label">Status</span>
+              <span className="fux-badge fux-badge-accent" data-testid="detail-status">{detail.status}</span>
+            </div>
+
+            <div className="fux-label mb-1">Body</div>
+            <p className="text-sm whitespace-pre-line border border-border p-3 mb-4">{detail.body}</p>
+
+            {(detail.hashtags || []).length > 0 && (
+              <>
+                <div className="fux-label mb-1">Hashtags</div>
+                <div className="flex flex-wrap gap-1.5 mb-4">
+                  {detail.hashtags.map((h) => <span key={h} className="fux-badge fux-badge-accent">{h}</span>)}
+                </div>
+              </>
+            )}
+
+            {/* Approval actions */}
+            <div className="border-t border-border pt-4">
+              <div className="fux-label mb-2">Approval actions</div>
+              {allowed.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No transitions available from status "{detail.status}".</div>
+              ) : (
+                <>
+                  <div className="mb-3">
+                    <label className="fux-label block mb-1.5 flex items-center gap-1">
+                      <MessageSquare size={12} /> Note (optional — visible in history)
+                    </label>
+                    <textarea
+                      className="fux-input min-h-16"
+                      placeholder="e.g. 'Bitte Headline kürzen und CTA anpassen'"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      data-testid="transition-note"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {allowed.map((s) => {
+                      const meta = ACTION_LABELS[s] || { icon: ArrowRight, label: `Move to ${s}`, cls: "fux-btn-ghost" };
+                      const Icon = meta.icon;
+                      return (
+                        <button
+                          key={s}
+                          disabled={busy}
+                          className={meta.cls}
+                          onClick={() => transition(s)}
+                          data-testid={`transition-${s}`}
+                        >
+                          <Icon size={14} /> {meta.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* History */}
+            <div className="border-t border-border pt-4 mt-6">
+              <div className="fux-label mb-2">History ({events.length})</div>
+              {events.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No transitions yet.</div>
+              ) : (
+                <ul className="space-y-2">
+                  {events.map((e) => (
+                    <li key={e.id} className="text-sm border border-border p-3" data-testid={`event-${e.id}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="fux-badge">{e.from_status}</span>
+                        <ArrowRight size={12} />
+                        <span className="fux-badge fux-badge-accent">{e.to_status}</span>
+                        <span className="fux-label ml-auto">{e.created_at?.slice(0, 16).replace("T", " ")}</span>
+                      </div>
+                      {e.note && <div className="mt-2 text-muted-foreground italic">"{e.note}"</div>}
+                      <div className="fux-label mt-1">by {e.by_user_email || "?"}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

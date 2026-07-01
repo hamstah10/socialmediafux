@@ -23,10 +23,15 @@ async def create_creative(payload: CreativeCreate, _=Depends(get_current_user)):
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
 
+    template = None
+    if payload.design_template_id:
+        template = await find_one("design_templates", {"id": payload.design_template_id})
+
     preview = build_preview_html(
         customer=customer, format=payload.format,
         headline=payload.headline, subline=payload.subline or "",
         cta=payload.cta or "", logo_url=customer.get("logo_path") or "",
+        template=template,
     )
     doc = {
         **base_fields(),
@@ -62,13 +67,17 @@ async def update_creative(creative_id: str, payload: CreativeUpdate, _=Depends(g
     update = {k: v for k, v in payload.model_dump().items() if v is not None}
     merged = {**current, **update}
     # Rebuild preview if visible fields changed
-    if any(k in update for k in ("headline", "subline", "cta", "format")):
+    if any(k in update for k in ("headline", "subline", "cta", "format", "design_template_id")):
         customer = await find_one("customers", {"id": merged["customer_id"]})
+        template = None
+        if merged.get("design_template_id"):
+            template = await find_one("design_templates", {"id": merged["design_template_id"]})
         if customer:
             merged["preview_html"] = build_preview_html(
                 customer=customer, format=merged["format"],
                 headline=merged["headline"], subline=merged.get("subline", ""),
                 cta=merged.get("cta", ""), logo_url=customer.get("logo_path") or "",
+                template=template,
             )
             update["preview_html"] = merged["preview_html"]
     return await update_one("creatives", {"id": creative_id}, update)
