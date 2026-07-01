@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth import get_current_user
-from db import base_fields, db, find_many, find_one, insert_one, update_one
+from db import base_fields, db, delete_one, find_many, find_one, insert_one, update_one
 from models import (
     ComplianceRequest,
     GenerateContentRequest,
@@ -206,6 +206,14 @@ async def transition(content_id: str, payload: TransitionRequest,
     event.pop("_id", None)
 
     return {"content": updated, "event": event}
+
+
+@router.delete("/contents/{content_id}")
+async def remove_generated(content_id: str, _=Depends(get_current_user)):
+    ok = await delete_one("generated_contents", {"id": content_id})
+    if not ok:
+        raise HTTPException(status_code=404, detail="Not found")
+    return {"ok": True}
 
 
 @router.get("/contents/{content_id}/events")

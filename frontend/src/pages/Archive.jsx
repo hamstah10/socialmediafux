@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { toast } from "sonner";
-import { CheckCircle2, XCircle, Send, ArrowRight, MessageSquare, X, RotateCcw, Archive as ArchiveIcon, Copy, Download, Link as LinkIcon } from "lucide-react";
+import { CheckCircle2, XCircle, Send, ArrowRight, MessageSquare, X, RotateCcw, Archive as ArchiveIcon, Copy, Download, Link as LinkIcon, Trash2 } from "lucide-react";
 
 const STATUSES = ["all","draft","review","approved","scheduled","published","archived"];
 const PLATFORMS = ["all","instagram","facebook","linkedin","google_business","blog","newsletter","whatsapp"];
@@ -97,6 +97,20 @@ export default function Archive() {
     }
   };
 
+  const removeContent = async () => {
+    if (!detail) return;
+    if (!window.confirm(`"${detail.title || "(ohne Titel)"}" endgültig löschen?`)) return;
+    setBusy(true);
+    try {
+      await api.delete(`/generator/contents/${detail.id}`);
+      toast.success("Gelöscht");
+      setDetail(null);
+      load();
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "Löschen fehlgeschlagen");
+    } finally { setBusy(false); }
+  };
+
   const transition = async (target) => {
     if (!detail) return;
     setBusy(true);
@@ -174,7 +188,17 @@ export default function Archive() {
                 <div className="fux-label">// {detail.platform} · {detail.tone}</div>
                 <h2 className="fux-heading text-2xl mt-1">{detail.title || "(ohne Titel)"}</h2>
               </div>
-              <button onClick={() => setDetail(null)} data-testid="close-detail"><X size={18} /></button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={removeContent}
+                  disabled={busy}
+                  className="fux-label hover:text-destructive inline-flex items-center gap-1"
+                  data-testid="delete-content"
+                >
+                  <Trash2 size={14} /> löschen
+                </button>
+                <button onClick={() => setDetail(null)} data-testid="close-detail"><X size={18} /></button>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 mb-4">
