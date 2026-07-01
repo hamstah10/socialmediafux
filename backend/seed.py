@@ -5,7 +5,7 @@ already has older seed data.
 """
 import logging
 from auth import hash_password
-from db import base_fields, db, find_one, insert_one, utcnow_iso
+from db import base_fields, db, find_one, insert_one
 
 logger = logging.getLogger(__name__)
 
@@ -76,37 +76,31 @@ async def seed_admin() -> None:
 
 
 async def seed_sources() -> None:
-    """Upsert default sources by name.
+    """Seed default sources ONCE.
 
-    Older DBs that were seeded with placeholder URLs (e.g.
-    `autotuner-tool.com/news`) get transparently upgraded to the real ones.
-    Legacy source names that were replaced by renames are removed so the
-    sidebar doesn't grow duplicates.
+    After the first seed we store a marker so that user-deleted sources
+    never come back. This also stops the upsert-by-name loop that used to
+    resurrect deleted default sources on every backend restart.
     """
-    # Names that existed in earlier seeds but were replaced/removed.
-    LEGACY_NAMES = {"AutoFlasher", "CMD Flash"}
-    for legacy in LEGACY_NAMES:
-        current = {s["name"] for s in DEFAULT_SOURCES}
-        if legacy not in current:
-            await db["news_sources"].delete_many({"name": legacy})
+    marker = await find_one("settings", {"key": "news_sources_seeded"})
+    if marker:
+        return
+
+    # If the DB already has sources (legacy pre-marker installs), just
+    # write the marker so we don't touch anything.
+    existing_count = await db["news_sources"].count_documents({})
+    if existing_count > 0:
+        await insert_one("settings", {**base_fields(), "key": "news_sources_seeded",
+                                       "value": "legacy"})
+        logger.info("News sources already present (%d) — marked as seeded", existing_count)
+        return
 
     for s in DEFAULT_SOURCES:
-        existing = await find_one("news_sources", {"name": s["name"]})
-        if existing:
-            await db["news_sources"].update_one(
-                {"id": existing["id"]},
-                {"$set": {
-                    "url": s["url"],
-                    "rss_url": s["rss_url"],
-                    "source_type": s["source_type"],
-                    "scraper_key": s["scraper_key"],
-                    "updated_at": utcnow_iso(),
-                }},
-            )
-        else:
-            await insert_one("news_sources", {**base_fields(), **s, "active": True,
-                                              "last_checked_at": None})
-    logger.info("Seeded/upgraded %d news sources", len(DEFAULT_SOURCES))
+        await insert_one("news_sources", {**base_fields(), **s, "active": True,
+                                          "last_checked_at": None})
+    await insert_one("settings", {**base_fields(), "key": "news_sources_seeded",
+                                    "value": "initial"})
+    logger.info("Seeded %d news sources (first run)", len(DEFAULT_SOURCES))
 
 
 async def seed_demo_customer() -> None:
