@@ -15,7 +15,10 @@ async def stats(_=Depends(get_current_user)):
     approved_count = await db["generated_contents"].count_documents({"status": "approved"})
     published_count = await db["generated_contents"].count_documents({"status": "published"})
 
-    latest_news = await find_many("news_items", sort_field="created_at", sort_dir=-1, limit=6)
+    latest_news = await find_many(
+        "news_items", {"status": {"$nin": ["ignored", "archived"]}},
+        sort_field="created_at", sort_dir=-1, limit=6,
+    )
     latest_generated_content = await find_many(
         "generated_contents", sort_field="created_at", sort_dir=-1, limit=6
     )

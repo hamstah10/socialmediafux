@@ -17,6 +17,10 @@ async def list_items(status: Optional[str] = Query(None), news_source_id: Option
     q: dict = {}
     if status:
         q["status"] = status
+    else:
+        # Default view: hide ignored/archived so the inbox stays clean.
+        # Users can still see them via explicit status filter.
+        q["status"] = {"$nin": ["ignored", "archived"]}
     if news_source_id:
         q["news_source_id"] = news_source_id
     return await find_many("news_items", q, sort_field="published_at", sort_dir=-1, limit=limit)
