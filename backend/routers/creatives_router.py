@@ -41,6 +41,7 @@ async def create_creative(payload: CreativeCreate, _=Depends(get_current_user)):
         cta=payload.cta or "", logo_url=logo_url,
         background_image_url=payload.background_image_path or "",
         template=template,
+        layers=payload.layers,
     )
     doc = {
         **base_fields(),
@@ -56,6 +57,8 @@ async def create_creative(payload: CreativeCreate, _=Depends(get_current_user)):
         "logo_override_path": payload.logo_override_path,
         "image_path": None,
         "preview_html": preview,
+        "layers": payload.layers or [],
+        "groups": payload.groups or [],
         "status": "draft",
     }
     await insert_one("creatives", doc)

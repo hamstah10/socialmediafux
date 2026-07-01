@@ -19,10 +19,35 @@ FORMAT_SIZES = {
 }
 
 
+PRESET_FONTS = {"Rajdhani", "IBM Plex Sans", "IBM Plex Mono", "Inter", "JetBrains Mono"}
+
+
+def _custom_font_links(layers: list[dict]) -> str:
+    """Inject Google Font <link> tags for any non-preset fontFamily used."""
+    families = set()
+    for layer in layers or []:
+        if layer.get("type") == "text":
+            f = (layer.get("fontFamily") or "").strip()
+            if f and f not in PRESET_FONTS:
+                families.add(f)
+    if not families:
+        return ""
+    tags = []
+    for fam in families:
+        q = fam.replace(" ", "+")
+        tags.append(
+            f'<link rel="stylesheet" '
+            f'href="https://fonts.googleapis.com/css2?family={q}:wght@400;500;600;700;800&display=swap" />'
+        )
+    return "".join(tags)
+
+
 def _render_layers(layers: list[dict]) -> str:
     """Absolute-positioned layers rendered on top of the base composition."""
     out: list[str] = []
     for layer in sorted(layers or [], key=lambda x: x.get("z", 0)):
+        if layer.get("visible") is False:
+            continue
         x = float(layer.get("x", 0))
         y = float(layer.get("y", 0))
         w = float(layer.get("w", 20))
@@ -41,9 +66,12 @@ def _render_layers(layers: list[dict]) -> str:
             align = escape(layer.get("align", "left"))
             text = escape(layer.get("text", ""))
             transform = "uppercase" if layer.get("upper") else "none"
+            ff = (layer.get("fontFamily") or "Rajdhani").replace("'", "")
+            font_family = f"'{ff}',sans-serif"
             out.append(
                 f'<div style="{common} background:{escape(bg)}; color:{color}; '
                 f'font-size:{fs}cqw; font-weight:{fw}; text-transform:{transform}; '
+                f'font-family:{font_family}; '
                 f'display:flex; align-items:center; justify-content:{align}; '
                 f'padding:0.5em 0.8em; line-height:1.1; letter-spacing:-0.01em;">{text}</div>'
             )
@@ -119,7 +147,9 @@ def build_preview_html(*, customer: dict, format: str, headline: str,
     # Layers-only mode: if user has designed a fully custom composition via
     # the layout editor, skip the default badge/headline/CTA scaffolding.
     if layers:
+        font_links = _custom_font_links(layers)
         return f"""
+{font_links}
 <div class="fux-creative" style="
     width:100%; aspect-ratio:{w}/{h};
     {bg_css}

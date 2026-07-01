@@ -40,6 +40,9 @@ briefing in the initial task message.
 - [x] Settings page
 - [x] VPS deploy notes + Nginx example
 - [x] Seed: admin, 7 news sources, demo customer, 3 templates
+- [x] Media Library + Media Picker (2026-06)
+- [x] Free-form Layout Editor with layers (2026-07)
+- [x] Layout Editor Pro: corner resize handles, snap-to-grid, font selector (Google Fonts), named layer groups (2026-07)
 
 ## P0 backlog
 - Playwright-based PNG export for creatives (VPS)

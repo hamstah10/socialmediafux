@@ -165,6 +165,7 @@ class CreativeCreate(BaseModel):
     background_image_path: Optional[str] = None
     logo_override_path: Optional[str] = None
     layers: Optional[List[dict]] = None
+    groups: Optional[List[dict]] = None
 
 
 class CreativeUpdate(BaseModel):
@@ -178,6 +179,7 @@ class CreativeUpdate(BaseModel):
     background_image_path: Optional[str] = None
     logo_override_path: Optional[str] = None
     layers: Optional[List[dict]] = None
+    groups: Optional[List[dict]] = None
 
 
 # ---------- Template ----------
