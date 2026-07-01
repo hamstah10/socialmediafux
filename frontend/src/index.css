@@ -22,11 +22,6 @@ body {
 
 body {
     margin: 0;
-    background-image:
-        linear-gradient(rgba(35, 45, 66, 0.35) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(35, 45, 66, 0.35) 1px, transparent 1px);
-    background-size: 44px 44px;
-    background-position: -1px -1px;
 }
 
 #root {
