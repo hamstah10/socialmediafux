@@ -10,7 +10,11 @@ import os
 import re
 from typing import Optional
 
-from emergentintegrations.llm.chat import LlmChat, UserMessage
+try:
+    from emergentintegrations.llm.chat import LlmChat, UserMessage
+except ImportError:
+    LlmChat = None
+    UserMessage = None
 
 logger = logging.getLogger(__name__)
 
@@ -110,8 +114,8 @@ async def generate_content(customer: dict, news: Optional[dict], platform: str,
                            tone: str, cta: Optional[str], target_link: Optional[str],
                            custom_prompt: Optional[str] = None) -> dict:
     api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
-        logger.warning("No EMERGENT_LLM_KEY, using mock generator")
+    if not api_key or LlmChat is None:
+        logger.warning("No EMERGENT_LLM_KEY or emergentintegrations unavailable, using mock generator")
         return _mock_generate(customer, news, platform, tone, cta, target_link)
 
     try:
@@ -185,7 +189,7 @@ async def generate_variants(customer: dict, news: Optional[dict], platform: str,
 async def safe_rewrite(text: str, customer: Optional[dict] = None) -> str:
     """Rewrite riskante Aussagen zu sicheren Formulierungen via Claude."""
     api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
+    if not api_key or LlmChat is None:
         # Basic keyword replacement fallback
         replacements = {
             "100% legal": "ausschließlich für Motorsport, Export oder Offroad",
