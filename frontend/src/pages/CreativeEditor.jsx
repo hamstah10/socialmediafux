@@ -55,6 +55,8 @@ export default function CreativeEditor() {
   const [logoAsset, setLogoAsset] = useState(null);
   const [pickerMode, setPickerMode] = useState(null); // "background" | "logo" | null
   const [saving, setSaving] = useState(false);
+  const [savedCreativeId, setSavedCreativeId] = useState(null);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     api.get("/customers").then((r) => { setCustomers(r.data); setCustomerId(r.data[0]?.id || ""); });
@@ -92,20 +94,35 @@ export default function CreativeEditor() {
     if (!customerId) return toast.error("Kunde wählen");
     setSaving(true);
     try {
-      await api.post("/creatives", {
+      const payload = {
         customer_id: customerId,
         generated_content_id: contentId || null,
         design_template_id: templateId || null,
         format, headline, subline, cta,
         background_image_path: backgroundAsset?.file_path || null,
         logo_override_path: logoAsset?.file_path || null,
-      });
+      };
+      const r = savedCreativeId
+        ? await api.put(`/creatives/${savedCreativeId}`, payload)
+        : await api.post("/creatives", payload);
+      setSavedCreativeId(r.data.id);
       toast.success("Creative gespeichert");
-    } catch { toast.error("Speichern fehlgeschlagen"); } finally { setSaving(false); }
+      return r.data.id;
+    } catch { toast.error("Speichern fehlgeschlagen"); return null; } finally { setSaving(false); }
   };
 
-  const exportPng = () => {
-    toast.info("PNG-Export benötigt Playwright — wird später auf VPS aktiviert.");
+  const exportPng = async () => {
+    setExporting(true);
+    try {
+      const creativeId = savedCreativeId || (await save());
+      if (!creativeId) return;
+      const r = await api.post(`/creatives/${creativeId}/export-png`);
+      const url = resolveUpload(r.data.image_path);
+      window.open(url, "_blank");
+      toast.success("PNG exportiert");
+    } catch (err) {
+      toast.error(err?.response?.data?.detail || "PNG-Export fehlgeschlagen");
+    } finally { setExporting(false); }
   };
 
   return (
@@ -210,10 +227,9 @@ export default function CreativeEditor() {
             <button className="fux-btn-primary w-full justify-center" onClick={save} disabled={saving} data-testid="ce-save">
               <Save size={14} /> {saving ? "Speichere…" : "Creative speichern"}
             </button>
-            <button className="fux-btn-ghost w-full justify-center" onClick={exportPng} data-testid="ce-export-png">
-              <Download size={14} /> PNG exportieren
+            <button className="fux-btn-ghost w-full justify-center" onClick={exportPng} disabled={exporting} data-testid="ce-export-png">
+              <Download size={14} /> {exporting ? "Exportiere…" : "PNG exportieren"}
             </button>
-            <p className="fux-label text-[10px]">PNG-Export benötigt Playwright (VPS).</p>
           </div>
         </div>
       </div>

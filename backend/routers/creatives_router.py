@@ -1,7 +1,9 @@
 """Creatives endpoints."""
 import io
 import json
+import os
 import zipfile
+from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
@@ -13,6 +15,8 @@ from services.ai_service import generate_content
 from services.creative import build_preview_html
 
 router = APIRouter(prefix="/creatives", tags=["creatives"])
+
+UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/app/uploads"))
 
 
 @router.get("")
@@ -115,11 +119,24 @@ async def export_png(creative_id: str, _=Depends(get_current_user)):
     c = await find_one("creatives", {"id": creative_id})
     if not c:
         raise HTTPException(status_code=404, detail="Not found")
-    # Playwright not installed in this MVP
-    raise HTTPException(
-        status_code=status.HTTP_501_NOT_IMPLEMENTED,
-        detail="PNG export not available. Please install Playwright.",
-    )
+    if not c.get("preview_html"):
+        raise HTTPException(status_code=400, detail="Creative has no preview to render")
+
+    from services.png_export import render_creative_png
+
+    try:
+        png_bytes = await render_creative_png(preview_html=c["preview_html"], format=c.get("format", "instagram_square"))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"PNG render failed: {e}")
+
+    creatives_dir = UPLOAD_DIR / "creatives"
+    creatives_dir.mkdir(parents=True, exist_ok=True)
+    filename = f"{creative_id}.png"
+    (creatives_dir / filename).write_bytes(png_bytes)
+
+    image_path = f"/uploads/creatives/{filename}"
+    await update_one("creatives", {"id": creative_id}, {"image_path": image_path})
+    return {"image_path": image_path}
 
 
 @router.post("/{creative_id}/export-zip")

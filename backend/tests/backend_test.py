@@ -301,11 +301,11 @@ class TestCreatives:
         assert r.status_code == 200, r.text
         assert "UPDATED Headline" in r.json()["preview_html"]
 
-    def test_export_png_returns_501(self, auth_client):
+    def test_export_png(self, auth_client):
         assert TestCreatives._creative_id
         r = auth_client.post(f"{API}/creatives/{TestCreatives._creative_id}/export-png")
-        assert r.status_code == 501, f"Expected 501, got {r.status_code} {r.text}"
-        assert "Playwright" in r.text
+        assert r.status_code == 200, r.text
+        assert r.json()["image_path"].endswith(".png")
 
     def test_delete_creative(self, auth_client):
         assert TestCreatives._creative_id
