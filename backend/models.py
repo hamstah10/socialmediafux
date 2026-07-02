@@ -245,6 +245,33 @@ class LayoutTemplateUpdate(BaseModel):
     thumbnail_path: Optional[str] = None
 
 
+# ---------- Car Diagrams (Motorraum-Schaubild-Generator) ----------
+class CarDiagramCreate(BaseModel):
+    customer_id: str
+    vehicle: str
+    year: Optional[str] = ""
+    engine: str
+
+
+class CarDiagramUpdate(BaseModel):
+    vehicle: Optional[str] = None
+    year: Optional[str] = None
+    engine: Optional[str] = None
+
+
+class CarDiagramGenerateRequest(BaseModel):
+    diagram_title: str
+    markings: List[str] = Field(default_factory=list)
+    perspective: str = "Motorraum von oben, Motorhaube offen"
+    language: str = "Deutsch"
+    detail_view: bool = True
+    realistic: bool = True
+    notes: Optional[str] = ""
+    image_area: str = "motorroom"  # motorroom | trunk
+    use_saved_base: bool = True
+    save_prompt_name: Optional[str] = ""
+
+
 # ---------- Bulk generation ----------
 class BulkFromNewsRequest(BaseModel):
     customer_id: str

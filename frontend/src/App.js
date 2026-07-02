@@ -19,6 +19,7 @@ import Archive from "@/pages/Archive";
 import Templates from "@/pages/Templates";
 import MediaLibrary from "@/pages/MediaLibrary";
 import LayoutEditor from "@/pages/LayoutEditor";
+import CarDiagrams from "@/pages/CarDiagrams";
 import BulkGenerator from "@/pages/BulkGenerator";
 import Settings from "@/pages/Settings";
 
@@ -59,6 +60,7 @@ function App() {
             <Route path="/content-generator" element={<ContentGenerator />} />
             <Route path="/creative-editor" element={<CreativeEditor />} />
             <Route path="/layout-editor" element={<LayoutEditor />} />
+            <Route path="/car-diagrams" element={<CarDiagrams />} />
             <Route path="/bulk-generator" element={<BulkGenerator />} />
             <Route path="/approvals" element={<Approvals />} />
             <Route path="/archive" element={<Archive />} />

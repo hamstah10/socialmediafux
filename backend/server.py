@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 from db import client, init_db  # noqa: E402
 from routers.auth_router import router as auth_router  # noqa: E402
 from routers.approvals_router import router as approvals_router  # noqa: E402
+from routers.car_diagrams_router import router as car_diagrams_router  # noqa: E402
 from routers.customers_router import router as customers_router  # noqa: E402
 from routers.dashboard_router import router as dashboard_router  # noqa: E402
 from routers.creatives_router import router as creatives_router  # noqa: E402
@@ -76,6 +77,7 @@ async def settings() -> dict:
         "domain": os.environ.get("DOMAIN", "social.tuningfux.de"),
         "upload_dir": os.environ.get("UPLOAD_DIR", "/app/uploads"),
         "llm_configured": bool(os.environ.get("ANTHROPIC_API_KEY")),
+        "openai_configured": bool(os.environ.get("OPENAI_API_KEY")),
     }
 
 
@@ -90,6 +92,7 @@ api_router.include_router(templates_router)
 api_router.include_router(layout_templates_router)
 api_router.include_router(approvals_router)
 api_router.include_router(media_router)
+api_router.include_router(car_diagrams_router)
 
 app.include_router(api_router)
 

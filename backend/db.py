@@ -40,6 +40,7 @@ COLLECTIONS = [
     "approval_links",
     "approval_events",
     "media_assets",
+    "car_diagrams",
 ]
 
 _pool: aiomysql.Pool | None = None

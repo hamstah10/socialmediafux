@@ -17,6 +17,7 @@ import {
   Settings,
   LogOut,
   Radar,
+  Car,
 } from "lucide-react";
 
 const NAV = [
@@ -29,6 +30,7 @@ const NAV = [
   { to: "/bulk-generator", label: "Massen-Generator", icon: Zap, testid: "nav-bulk-generator" },
   { to: "/creative-editor", label: "Creative Editor", icon: Palette, testid: "nav-creative-editor" },
   { to: "/layout-editor", label: "Layout Editor", icon: Layers, testid: "nav-layout-editor" },
+  { to: "/car-diagrams", label: "Motorraum-Schaubilder", icon: Car, testid: "nav-car-diagrams" },
   { to: "/approvals", label: "Freigabe", icon: CheckCircle2, testid: "nav-approvals" },
   { to: "/archive", label: "Archiv", icon: Archive, testid: "nav-archive" },
   { to: "/templates", label: "Vorlagen", icon: LayoutTemplate, testid: "nav-templates" },

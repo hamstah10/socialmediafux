@@ -18,7 +18,7 @@ ALLOWED_EXT = {".png", ".jpg", ".jpeg", ".webp", ".svg", ".gif"}
 MAX_SIZE = 10 * 1024 * 1024  # 10 MB
 
 CATEGORIES = ["Logo", "Background", "ECU", "Werkstatt", "Auto", "Tool",
-              "Icon", "Creative Export", "News Image"]
+              "Icon", "Creative Export", "News Image", "Motorraum"]
 
 
 @router.get("")
