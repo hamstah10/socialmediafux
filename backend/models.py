@@ -21,6 +21,7 @@ class UserOut(BaseModel):
     full_name: str
     role: str
     is_active: bool = True
+    customer_id: Optional[str] = None
 
 
 # ---------- Customer ----------

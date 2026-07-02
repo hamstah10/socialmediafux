@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 
-from auth import get_current_user
+from auth import get_current_user, is_customer_scoped, require_customer_access
 from db import base_fields, db, delete_one, find_many, find_one, insert_one, update_one
 
 router = APIRouter(prefix="/media", tags=["media"])
@@ -23,13 +23,17 @@ CATEGORIES = ["Logo", "Background", "ECU", "Werkstatt", "Auto", "Tool",
 
 @router.get("")
 async def list_assets(customer_id: Optional[str] = None, category: Optional[str] = None,
-                      _=Depends(get_current_user)):
+                      current=Depends(get_current_user)):
     q: dict = {}
-    if customer_id:
+    if not is_customer_scoped(current) and customer_id:
         q["customer_id"] = customer_id
     if category:
         q["category"] = category
-    return await find_many("media_assets", q, sort_field="created_at", sort_dir=-1)
+    assets = await find_many("media_assets", q, sort_field="created_at", sort_dir=-1)
+    if is_customer_scoped(current):
+        own_id = current.get("customer_id")
+        assets = [a for a in assets if a.get("customer_id") in (None, own_id)]
+    return assets
 
 
 @router.get("/categories")
@@ -45,8 +49,9 @@ async def upload_asset(
     tags: str = Form(""),
     source: str = Form(""),
     license_note: str = Form(""),
-    _=Depends(get_current_user),
+    current=Depends(get_current_user),
 ):
+    require_customer_access(current, customer_id)
     ext = (Path(file.filename or "asset.png").suffix or ".png").lower()
     if ext not in ALLOWED_EXT:
         raise HTTPException(status_code=400, detail=f"Extension {ext} not allowed")
@@ -76,9 +81,15 @@ async def upload_asset(
 
 
 @router.put("/{asset_id}")
-async def update_asset(asset_id: str, payload: dict, _=Depends(get_current_user)):
+async def update_asset(asset_id: str, payload: dict, current=Depends(get_current_user)):
+    existing = await find_one("media_assets", {"id": asset_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, existing.get("customer_id"))
     allowed = {k: v for k, v in payload.items() if k in {"category", "tags", "source",
                                                           "license_note", "customer_id"}}
+    if "customer_id" in allowed:
+        require_customer_access(current, allowed["customer_id"])
     updated = await update_one("media_assets", {"id": asset_id}, allowed)
     if not updated:
         raise HTTPException(status_code=404, detail="Not found")
@@ -86,10 +97,11 @@ async def update_asset(asset_id: str, payload: dict, _=Depends(get_current_user)
 
 
 @router.delete("/{asset_id}")
-async def remove_asset(asset_id: str, _=Depends(get_current_user)):
+async def remove_asset(asset_id: str, current=Depends(get_current_user)):
     asset = await find_one("media_assets", {"id": asset_id})
     if not asset:
         raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, asset.get("customer_id"))
     # Try to unlink physical file
     try:
         rel = asset["file_path"].replace("/uploads/", "")

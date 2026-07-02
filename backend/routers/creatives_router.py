@@ -8,7 +8,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from auth import get_current_user
+from auth import get_current_user, require_customer_access, scoped_customer_id
 from db import base_fields, find_many, find_one, insert_one, update_one, delete_one
 from models import CreativeCreate, CreativeUpdate, BulkFromNewsRequest
 from services.ai_service import generate_content
@@ -21,17 +21,19 @@ UPLOAD_DIR = Path(os.environ.get("UPLOAD_DIR", "/app/uploads"))
 
 @router.get("")
 async def list_creatives(customer_id: str | None = None, generated_content_id: str | None = None,
-                          _=Depends(get_current_user)):
+                          current=Depends(get_current_user)):
     q: dict = {}
-    if customer_id:
-        q["customer_id"] = customer_id
+    effective_customer_id = scoped_customer_id(current, customer_id)
+    if effective_customer_id:
+        q["customer_id"] = effective_customer_id
     if generated_content_id:
         q["generated_content_id"] = generated_content_id
     return await find_many("creatives", q)
 
 
 @router.post("", status_code=status.HTTP_201_CREATED)
-async def create_creative(payload: CreativeCreate, _=Depends(get_current_user)):
+async def create_creative(payload: CreativeCreate, current=Depends(get_current_user)):
+    require_customer_access(current, payload.customer_id)
     customer = await find_one("customers", {"id": payload.customer_id})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -74,20 +76,22 @@ async def create_creative(payload: CreativeCreate, _=Depends(get_current_user)):
 
 
 @router.get("/{creative_id}")
-async def get_creative(creative_id: str, _=Depends(get_current_user)):
+async def get_creative(creative_id: str, current=Depends(get_current_user)):
     c = await find_one("creatives", {"id": creative_id})
     if not c:
         raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, c.get("customer_id"))
     return c
 
 
 @router.put("/{creative_id}")
-async def update_creative(creative_id: str, payload: CreativeUpdate, _=Depends(get_current_user)):
-    current = await find_one("creatives", {"id": creative_id})
-    if not current:
+async def update_creative(creative_id: str, payload: CreativeUpdate, current=Depends(get_current_user)):
+    existing = await find_one("creatives", {"id": creative_id})
+    if not existing:
         raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, existing.get("customer_id"))
     update = {k: v for k, v in payload.model_dump().items() if v is not None}
-    merged = {**current, **update}
+    merged = {**existing, **update}
     # Rebuild preview if visible fields changed
     if any(k in update for k in ("headline", "subline", "cta", "format", "design_template_id",
                                     "background_image_path", "logo_override_path", "layers")):
@@ -110,7 +114,11 @@ async def update_creative(creative_id: str, payload: CreativeUpdate, _=Depends(g
 
 
 @router.delete("/{creative_id}")
-async def remove_creative(creative_id: str, _=Depends(get_current_user)):
+async def remove_creative(creative_id: str, current=Depends(get_current_user)):
+    existing = await find_one("creatives", {"id": creative_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, existing.get("customer_id"))
     ok = await delete_one("creatives", {"id": creative_id})
     if not ok:
         raise HTTPException(status_code=404, detail="Not found")
@@ -118,10 +126,11 @@ async def remove_creative(creative_id: str, _=Depends(get_current_user)):
 
 
 @router.post("/{creative_id}/export-png")
-async def export_png(creative_id: str, _=Depends(get_current_user)):
+async def export_png(creative_id: str, current=Depends(get_current_user)):
     c = await find_one("creatives", {"id": creative_id})
     if not c:
         raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, c.get("customer_id"))
     if not c.get("preview_html"):
         raise HTTPException(status_code=400, detail="Creative has no preview to render")
 
@@ -143,11 +152,12 @@ async def export_png(creative_id: str, _=Depends(get_current_user)):
 
 
 @router.post("/{creative_id}/export-zip")
-async def export_zip(creative_id: str, _=Depends(get_current_user)):
+async def export_zip(creative_id: str, current=Depends(get_current_user)):
     """Return a ZIP with preview.html, caption.txt, hashtags.txt, post.json, readme."""
     creative = await find_one("creatives", {"id": creative_id})
     if not creative:
         raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, creative.get("customer_id"))
 
     content = None
     if creative.get("generated_content_id"):
@@ -243,7 +253,7 @@ def _apply_template_substitutions(layers: list[dict], *, headline: str, body: st
 
 
 @router.post("/bulk-from-news", status_code=status.HTTP_201_CREATED)
-async def bulk_from_news(payload: BulkFromNewsRequest, _=Depends(get_current_user)):
+async def bulk_from_news(payload: BulkFromNewsRequest, current=Depends(get_current_user)):
     """Generate AI content + a creative for every selected news item, using a
     saved Layout Template as design. AI calls run in parallel for speed.
 
@@ -251,6 +261,7 @@ async def bulk_from_news(payload: BulkFromNewsRequest, _=Depends(get_current_use
     """
     import asyncio
 
+    require_customer_access(current, payload.customer_id)
     customer = await find_one("customers", {"id": payload.customer_id})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")

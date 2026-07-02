@@ -1,7 +1,7 @@
 """AI content generation + hashtags + compliance + approval workflow."""
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from auth import get_current_user
+from auth import get_current_user, require_customer_access, scoped_customer_id
 from db import base_fields, db, delete_one, find_many, find_one, insert_one, update_one
 from models import (
     ComplianceRequest,
@@ -31,7 +31,8 @@ ALLOWED_TRANSITIONS: dict[str, set[str]] = {
 
 
 @router.post("/content", status_code=status.HTTP_201_CREATED)
-async def generate(payload: GenerateContentRequest, _=Depends(get_current_user)):
+async def generate(payload: GenerateContentRequest, current=Depends(get_current_user)):
+    require_customer_access(current, payload.customer_id)
     customer = await find_one("customers", {"id": payload.customer_id})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -74,7 +75,8 @@ async def generate(payload: GenerateContentRequest, _=Depends(get_current_user))
 
 
 @router.post("/hashtags")
-async def hashtags(payload: HashtagRequest, _=Depends(get_current_user)):
+async def hashtags(payload: HashtagRequest, current=Depends(get_current_user)):
+    require_customer_access(current, payload.customer_id)
     services: list[str] = []
     if payload.customer_id:
         customer = await find_one("customers", {"id": payload.customer_id})
@@ -85,8 +87,9 @@ async def hashtags(payload: HashtagRequest, _=Depends(get_current_user)):
 
 
 @router.post("/variants", status_code=status.HTTP_201_CREATED)
-async def variants(payload: GenerateVariantsRequest, _=Depends(get_current_user)):
+async def variants(payload: GenerateVariantsRequest, current=Depends(get_current_user)):
     """Generate 3 tone variants of the same content and save all as drafts."""
+    require_customer_access(current, payload.customer_id)
     customer = await find_one("customers", {"id": payload.customer_id})
     if not customer:
         raise HTTPException(status_code=404, detail="Customer not found")
@@ -127,7 +130,8 @@ async def variants(payload: GenerateVariantsRequest, _=Depends(get_current_user)
 
 
 @router.post("/safe-rewrite")
-async def safe_rewrite_endpoint(payload: SafeRewriteRequest, _=Depends(get_current_user)):
+async def safe_rewrite_endpoint(payload: SafeRewriteRequest, current=Depends(get_current_user)):
+    require_customer_access(current, payload.customer_id)
     customer = None
     if payload.customer_id:
         customer = await find_one("customers", {"id": payload.customer_id})
@@ -142,10 +146,11 @@ async def compliance(payload: ComplianceRequest, _=Depends(get_current_user)):
 
 @router.get("/contents")
 async def list_generated(customer_id: str | None = None, platform: str | None = None,
-                         status_filter: str | None = None, _=Depends(get_current_user)):
+                         status_filter: str | None = None, current=Depends(get_current_user)):
     q: dict = {}
-    if customer_id:
-        q["customer_id"] = customer_id
+    effective_customer_id = scoped_customer_id(current, customer_id)
+    if effective_customer_id:
+        q["customer_id"] = effective_customer_id
     if platform:
         q["platform"] = platform
     if status_filter:
@@ -154,16 +159,21 @@ async def list_generated(customer_id: str | None = None, platform: str | None = 
 
 
 @router.get("/contents/{content_id}")
-async def get_generated(content_id: str, _=Depends(get_current_user)):
+async def get_generated(content_id: str, current=Depends(get_current_user)):
     c = await find_one("generated_contents", {"id": content_id})
     if not c:
         raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, c.get("customer_id"))
     return c
 
 
 @router.put("/contents/{content_id}")
 async def update_generated(content_id: str, payload: GeneratedContentUpdate,
-                            _=Depends(get_current_user)):
+                            current=Depends(get_current_user)):
+    existing = await find_one("generated_contents", {"id": content_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, existing.get("customer_id"))
     update = {k: v for k, v in payload.model_dump().items() if v is not None}
     updated = await update_one("generated_contents", {"id": content_id}, update)
     if not updated:
@@ -179,6 +189,7 @@ async def transition(content_id: str, payload: TransitionRequest,
     content = await find_one("generated_contents", {"id": content_id})
     if not content:
         raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, content.get("customer_id"))
 
     current_status = content.get("status", "draft")
     target = payload.status
@@ -209,7 +220,11 @@ async def transition(content_id: str, payload: TransitionRequest,
 
 
 @router.delete("/contents/{content_id}")
-async def remove_generated(content_id: str, _=Depends(get_current_user)):
+async def remove_generated(content_id: str, current=Depends(get_current_user)):
+    existing = await find_one("generated_contents", {"id": content_id})
+    if not existing:
+        raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, existing.get("customer_id"))
     ok = await delete_one("generated_contents", {"id": content_id})
     if not ok:
         raise HTTPException(status_code=404, detail="Not found")
@@ -217,10 +232,11 @@ async def remove_generated(content_id: str, _=Depends(get_current_user)):
 
 
 @router.get("/contents/{content_id}/events")
-async def content_events(content_id: str, _=Depends(get_current_user)):
+async def content_events(content_id: str, current=Depends(get_current_user)):
     content = await find_one("generated_contents", {"id": content_id})
     if not content:
         raise HTTPException(status_code=404, detail="Not found")
+    require_customer_access(current, content.get("customer_id"))
     events = await find_many(
         "approval_events", {"content_id": content_id},
         sort_field="created_at", sort_dir=-1,

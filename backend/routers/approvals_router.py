@@ -4,8 +4,8 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from auth import get_current_user
-from db import base_fields, db, find_one, insert_one, update_one, utcnow_iso
+from auth import get_current_user, require_customer_access, scoped_customer_id
+from db import base_fields, db, find_many, find_one, insert_one, update_one, utcnow_iso
 from models import ApprovalCreateRequest, ApprovalDecision
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
@@ -33,6 +33,8 @@ async def create_link(payload: ApprovalCreateRequest, current=Depends(get_curren
         if not creative:
             raise HTTPException(status_code=404, detail="Creative not found")
         customer_id = customer_id or creative.get("customer_id")
+
+    require_customer_access(current, customer_id)
 
     expires_at = (
         datetime.now(timezone.utc) + timedelta(days=max(1, payload.expires_in_days))
@@ -129,9 +131,11 @@ async def reject(token: str, payload: ApprovalDecision):
 
 # --- Admin listing ---
 @router.get("")
-async def list_links(content_id: str | None = None, _=Depends(get_current_user)):
-    from db import find_many
+async def list_links(content_id: str | None = None, current=Depends(get_current_user)):
     q: dict = {}
     if content_id:
         q["generated_content_id"] = content_id
+    effective_customer_id = scoped_customer_id(current)
+    if effective_customer_id:
+        q["customer_id"] = effective_customer_id
     return await find_many("approval_links", q, sort_field="created_at", sort_dir=-1)

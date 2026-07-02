@@ -101,10 +101,12 @@ async def _migrate_legacy_users_table(conn) -> None:
                 full_name VARCHAR(255) NOT NULL,
                 role VARCHAR(32) NOT NULL DEFAULT 'user',
                 is_active TINYINT(1) NOT NULL DEFAULT 1,
+                customer_id VARCHAR(36) NULL,
                 created_at DATETIME(6) NOT NULL,
                 updated_at DATETIME(6) NOT NULL,
                 PRIMARY KEY (id),
-                UNIQUE KEY uq_users_email (email)
+                UNIQUE KEY uq_users_email (email),
+                KEY ix_users_customer_id (customer_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """
         )
@@ -112,12 +114,13 @@ async def _migrate_legacy_users_table(conn) -> None:
             await cur.execute(
                 """
                 INSERT INTO `users`
-                    (id, email, password_hash, full_name, role, is_active, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (id, email, password_hash, full_name, role, is_active, customer_id, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (
                     doc["id"], doc["email"], doc["password_hash"], doc["full_name"],
                     doc.get("role", "user"), bool(doc.get("is_active", True)),
+                    doc.get("customer_id"),
                     doc.get("created_at") or utcnow_iso(),
                     doc.get("updated_at") or utcnow_iso(),
                 ),
@@ -149,13 +152,25 @@ async def init_db() -> None:
                     full_name VARCHAR(255) NOT NULL,
                     role VARCHAR(32) NOT NULL DEFAULT 'user',
                     is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    customer_id VARCHAR(36) NULL,
                     created_at DATETIME(6) NOT NULL,
                     updated_at DATETIME(6) NOT NULL,
                     PRIMARY KEY (id),
-                    UNIQUE KEY uq_users_email (email)
+                    UNIQUE KEY uq_users_email (email),
+                    KEY ix_users_customer_id (customer_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                 """
             )
+            await cur.execute(
+                "SELECT COLUMN_NAME FROM information_schema.COLUMNS "
+                "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' "
+                "AND COLUMN_NAME = 'customer_id'"
+            )
+            if not await cur.fetchone():
+                await cur.execute(
+                    "ALTER TABLE `users` ADD COLUMN customer_id VARCHAR(36) NULL, "
+                    "ADD KEY ix_users_customer_id (customer_id)"
+                )
 
 
 def new_id() -> str:
@@ -326,7 +341,7 @@ def base_fields(**extra: Any) -> dict:
 
 
 _USER_COLUMNS = ["id", "email", "password_hash", "full_name", "role", "is_active",
-                 "created_at", "updated_at"]
+                 "customer_id", "created_at", "updated_at"]
 
 
 def _user_row_to_doc(row: Any) -> dict | None:
@@ -340,7 +355,8 @@ def _user_row_to_doc(row: Any) -> dict | None:
 
 
 async def create_user(*, email: str, password_hash: str, full_name: str,
-                       role: str = "user", is_active: bool = True) -> dict:
+                       role: str = "user", is_active: bool = True,
+                       customer_id: str | None = None) -> dict:
     """Insert a new row into the dedicated `users` table."""
     now = datetime.now(timezone.utc)
     user_id = new_id()
@@ -350,10 +366,10 @@ async def create_user(*, email: str, password_hash: str, full_name: str,
             await cur.execute(
                 """
                 INSERT INTO `users`
-                    (id, email, password_hash, full_name, role, is_active, created_at, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    (id, email, password_hash, full_name, role, is_active, customer_id, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
-                (user_id, email, password_hash, full_name, role, is_active, now, now),
+                (user_id, email, password_hash, full_name, role, is_active, customer_id, now, now),
             )
     return await get_user_by_id(user_id)
 
