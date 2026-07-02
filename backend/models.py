@@ -247,7 +247,7 @@ class LayoutTemplateUpdate(BaseModel):
 
 # ---------- Car Diagrams (Motorraum-Schaubild-Generator) ----------
 class CarDiagramCreate(BaseModel):
-    customer_id: str
+    customer_id: Optional[str] = None
     vehicle: str
     year: Optional[str] = ""
     engine: str

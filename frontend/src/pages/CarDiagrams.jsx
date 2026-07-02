@@ -78,12 +78,12 @@ export default function CarDiagrams() {
   }, [selectedId]);
 
   const createVehicle = async () => {
-    if (!vehicleForm.customer_id || !vehicleForm.vehicle || !vehicleForm.engine) {
-      return toast.error("Kunde, Fahrzeug und Motor sind Pflichtfelder");
+    if (!vehicleForm.vehicle || !vehicleForm.engine) {
+      return toast.error("Fahrzeug und Motor sind Pflichtfelder");
     }
     setCreating(true);
     try {
-      const r = await api.post("/car-diagrams", vehicleForm);
+      const r = await api.post("/car-diagrams", { ...vehicleForm, customer_id: vehicleForm.customer_id || null });
       toast.success("Fahrzeug angelegt");
       setNewOpen(false);
       setVehicleForm(emptyVehicleForm);
@@ -350,9 +350,9 @@ export default function CarDiagrams() {
             </div>
             <div className="space-y-3">
               <div>
-                <label className="fux-label block mb-1.5">Kunde</label>
+                <label className="fux-label block mb-1.5">Kunde (optional)</label>
                 <select className="fux-input" value={vehicleForm.customer_id} onChange={(e) => setVehicleForm({ ...vehicleForm, customer_id: e.target.value })} data-testid="vf-customer">
-                  <option value="">— wählen —</option>
+                  <option value="">Global (alle Kunden)</option>
                   {customers.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>

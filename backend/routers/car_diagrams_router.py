@@ -60,7 +60,7 @@ async def list_diagrams(customer_id: Optional[str] = None, current=Depends(get_c
     docs = await find_many("car_diagrams", q, sort_field="updated_at", sort_dir=-1)
     if is_customer_scoped(current):
         own_id = current.get("customer_id")
-        docs = [d for d in docs if d.get("customer_id") == own_id]
+        docs = [d for d in docs if d.get("customer_id") in (None, own_id)]
     return docs
 
 
