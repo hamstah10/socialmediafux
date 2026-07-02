@@ -10,6 +10,7 @@ from typing import Optional
 
 FORMAT_SIZES = {
     "instagram_square": (1080, 1080),
+    "instagram_portrait": (1080, 1350),
     "instagram_story": (1080, 1920),
     "facebook_landscape": (1200, 630),
     "linkedin_square": (1200, 1200),

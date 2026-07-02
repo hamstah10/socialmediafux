@@ -4,6 +4,7 @@
 
 export const FORMAT_SIZES = {
   instagram_square: { w: 1080, h: 1080, label: "Instagram Square" },
+  instagram_portrait: { w: 1080, h: 1350, label: "Instagram Portrait (4:5)" },
   instagram_story: { w: 1080, h: 1920, label: "Instagram Story" },
   facebook_landscape: { w: 1200, h: 630, label: "Facebook Landscape" },
   linkedin_square: { w: 1200, h: 1200, label: "LinkedIn Square" },
