@@ -8,7 +8,7 @@ import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
-from db import find_one
+from db import get_user_by_id
 
 JWT_SECRET = os.environ.get("JWT_SECRET", "change_me")
 JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
@@ -58,7 +58,7 @@ async def get_current_user(
     user_id = payload.get("sub")
     if not user_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
-    user = await find_one("users", {"id": user_id})
+    user = await get_user_by_id(user_id)
     if not user or not user.get("is_active", True):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found or inactive")
     user.pop("password_hash", None)

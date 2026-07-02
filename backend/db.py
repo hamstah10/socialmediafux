@@ -1,10 +1,15 @@
 """MySQL/MariaDB connection and helper utilities for SocialFUX.
 
-Each Mongo "collection" is stored as a MySQL table with a single JSON `data`
-column holding the full document, plus a generated `doc_id` column (mirroring
-`data->>'$.id'`) that is indexed so lookups by id stay fast. This keeps the
-call signatures identical to the previous Mongo-backed implementation so
-routers do not need to change.
+Most former Mongo "collections" are stored as a MySQL table with a single
+JSON `data` column holding the full document, plus a generated `doc_id`
+column (mirroring `data->>'$.id'`) that is indexed so lookups by id stay
+fast. This keeps the call signatures identical to the previous Mongo-backed
+implementation so routers do not need to change.
+
+The `users` table is the exception: it uses dedicated columns (see
+`create_user`/`get_user_by_id`/`get_user_by_email`/`update_user`/`delete_user`)
+instead of a JSON blob, since user data has stable known fields and benefits
+from real column types/constraints (e.g. a unique index on `email`).
 """
 from datetime import datetime, timezone
 from typing import Any
@@ -20,8 +25,10 @@ _MYSQL_PASSWORD = os.environ["MYSQL_PASSWORD"]
 _MYSQL_DB = os.environ["MYSQL_DATABASE"]
 
 # All collections used across the app. Tables are created lazily on startup.
+# NOTE: "users" is handled separately via dedicated columns (see USERS_TABLE
+# below and the `create_user`/`get_user_by_*`/`update_user` helpers) instead
+# of the generic JSON-blob table used for the collections listed here.
 COLLECTIONS = [
-    "users",
     "settings",
     "customers",
     "news_sources",
@@ -65,10 +72,63 @@ async def get_pool() -> aiomysql.Pool:
     return _pool
 
 
+async def _migrate_legacy_users_table(conn) -> None:
+    """Convert a pre-existing JSON-blob `users` table (doc_id + data JSON,
+    from before dedicated columns were introduced) into the new columnar
+    schema, preserving existing rows. No-op if `users` doesn't exist yet or
+    is already in the new shape.
+    """
+    async with conn.cursor() as cur:
+        await cur.execute(
+            "SELECT COLUMN_NAME FROM information_schema.COLUMNS "
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users'"
+        )
+        columns = {r[0] for r in await cur.fetchall()}
+        if not columns or "email" in columns:
+            # Table doesn't exist yet, or already migrated.
+            return
+        await cur.execute("SELECT data FROM `users`")
+        legacy_rows = [json_loads(r[0]) for r in await cur.fetchall()]
+        await cur.execute("RENAME TABLE `users` TO `users_legacy_json_backup`")
+
+    async with conn.cursor() as cur:
+        await cur.execute(
+            """
+            CREATE TABLE `users` (
+                id VARCHAR(36) NOT NULL,
+                email VARCHAR(255) NOT NULL,
+                password_hash VARCHAR(255) NOT NULL,
+                full_name VARCHAR(255) NOT NULL,
+                role VARCHAR(32) NOT NULL DEFAULT 'user',
+                is_active TINYINT(1) NOT NULL DEFAULT 1,
+                created_at DATETIME(6) NOT NULL,
+                updated_at DATETIME(6) NOT NULL,
+                PRIMARY KEY (id),
+                UNIQUE KEY uq_users_email (email)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            """
+        )
+        for doc in legacy_rows:
+            await cur.execute(
+                """
+                INSERT INTO `users`
+                    (id, email, password_hash, full_name, role, is_active, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    doc["id"], doc["email"], doc["password_hash"], doc["full_name"],
+                    doc.get("role", "user"), bool(doc.get("is_active", True)),
+                    doc.get("created_at") or utcnow_iso(),
+                    doc.get("updated_at") or utcnow_iso(),
+                ),
+            )
+
+
 async def init_db() -> None:
     """Create tables for every known collection if they don't exist yet."""
     pool = await get_pool()
     async with pool.acquire() as conn:
+        await _migrate_legacy_users_table(conn)
         async with conn.cursor() as cur:
             for name in COLLECTIONS:
                 await cur.execute(
@@ -80,6 +140,22 @@ async def init_db() -> None:
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
                     """
                 )
+            await cur.execute(
+                """
+                CREATE TABLE IF NOT EXISTS `users` (
+                    id VARCHAR(36) NOT NULL,
+                    email VARCHAR(255) NOT NULL,
+                    password_hash VARCHAR(255) NOT NULL,
+                    full_name VARCHAR(255) NOT NULL,
+                    role VARCHAR(32) NOT NULL DEFAULT 'user',
+                    is_active TINYINT(1) NOT NULL DEFAULT 1,
+                    created_at DATETIME(6) NOT NULL,
+                    updated_at DATETIME(6) NOT NULL,
+                    PRIMARY KEY (id),
+                    UNIQUE KEY uq_users_email (email)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+                """
+            )
 
 
 def new_id() -> str:
@@ -247,6 +323,87 @@ def base_fields(**extra: Any) -> dict:
     """Return base fields for a new document (id, created_at, updated_at)."""
     now = utcnow_iso()
     return {"id": new_id(), "created_at": now, "updated_at": now, **extra}
+
+
+_USER_COLUMNS = ["id", "email", "password_hash", "full_name", "role", "is_active",
+                 "created_at", "updated_at"]
+
+
+def _user_row_to_doc(row: Any) -> dict | None:
+    if row is None:
+        return None
+    doc = dict(zip(_USER_COLUMNS, row))
+    doc["is_active"] = bool(doc["is_active"])
+    doc["created_at"] = doc["created_at"].isoformat()
+    doc["updated_at"] = doc["updated_at"].isoformat()
+    return doc
+
+
+async def create_user(*, email: str, password_hash: str, full_name: str,
+                       role: str = "user", is_active: bool = True) -> dict:
+    """Insert a new row into the dedicated `users` table."""
+    now = datetime.now(timezone.utc)
+    user_id = new_id()
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                """
+                INSERT INTO `users`
+                    (id, email, password_hash, full_name, role, is_active, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (user_id, email, password_hash, full_name, role, is_active, now, now),
+            )
+    return await get_user_by_id(user_id)
+
+
+async def get_user_by_id(user_id: str) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"SELECT {', '.join(_USER_COLUMNS)} FROM `users` WHERE id = %s LIMIT 1",
+                (user_id,),
+            )
+            return _user_row_to_doc(await cur.fetchone())
+
+
+async def get_user_by_email(email: str) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"SELECT {', '.join(_USER_COLUMNS)} FROM `users` WHERE email = %s LIMIT 1",
+                (email,),
+            )
+            return _user_row_to_doc(await cur.fetchone())
+
+
+async def update_user(user_id: str, **fields: Any) -> dict | None:
+    """Update selected columns of a user row. Returns the updated user, or
+    None if no such user exists."""
+    allowed = {k: v for k, v in fields.items() if k in _USER_COLUMNS and k not in ("id", "created_at")}
+    if not allowed:
+        return await get_user_by_id(user_id)
+    allowed["updated_at"] = datetime.now(timezone.utc)
+    set_clause = ", ".join(f"`{k}` = %s" for k in allowed)
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"UPDATE `users` SET {set_clause} WHERE id = %s",
+                (*allowed.values(), user_id),
+            )
+    return await get_user_by_id(user_id)
+
+
+async def delete_user(user_id: str) -> bool:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("DELETE FROM `users` WHERE id = %s", (user_id,))
+            return cur.rowcount > 0
 
 
 class _CollectionShim:

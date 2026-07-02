@@ -5,7 +5,7 @@ already has older seed data.
 """
 import logging
 from auth import hash_password
-from db import base_fields, db, distinct_ids, find_one, insert_one
+from db import base_fields, create_user, db, distinct_ids, find_one, get_user_by_email, insert_one
 
 logger = logging.getLogger(__name__)
 
@@ -60,18 +60,16 @@ DEFAULT_TEMPLATES = [
 
 
 async def seed_admin() -> None:
-    existing = await find_one("users", {"email": "admin@socialfux.local"})
+    existing = await get_user_by_email("admin@socialfux.local")
     if existing:
         return
-    doc = {
-        **base_fields(),
-        "email": "admin@socialfux.local",
-        "password_hash": hash_password("admin123456"),
-        "full_name": "SocialFUX Admin",
-        "role": "superadmin",
-        "is_active": True,
-    }
-    await insert_one("users", doc)
+    await create_user(
+        email="admin@socialfux.local",
+        password_hash=hash_password("admin123456"),
+        full_name="SocialFUX Admin",
+        role="superadmin",
+        is_active=True,
+    )
     logger.info("Seeded default admin admin@socialfux.local")
 
 

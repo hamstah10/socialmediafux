@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from auth import create_access_token, get_current_user, verify_password
-from db import find_one
+from db import get_user_by_email
 from models import LoginRequest, LoginResponse
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=LoginResponse)
 async def login(payload: LoginRequest):
-    user = await find_one("users", {"email": payload.email.lower()})
+    user = await get_user_by_email(payload.email.lower())
     if not user or not verify_password(payload.password, user.get("password_hash", "")):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not user.get("is_active", True):
