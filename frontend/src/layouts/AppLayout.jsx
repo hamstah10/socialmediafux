@@ -18,6 +18,7 @@ import {
   LogOut,
   Radar,
   Car,
+  Grid3x3,
 } from "lucide-react";
 
 const NAV = [
@@ -55,6 +56,14 @@ export default function AppLayout() {
             <div className="fux-label mt-1">tuning content ops</div>
           </div>
         </div>
+        <NavLink
+          to="/apps"
+          data-testid="nav-apps"
+          className="flex items-center gap-3 px-6 py-2.5 text-sm border-l-2 border-transparent text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors border-b border-border"
+        >
+          <Grid3x3 size={16} strokeWidth={1.75} />
+          <span className="uppercase tracking-wider text-xs font-semibold">MarketingFUX</span>
+        </NavLink>
         <nav className="flex-1 py-4">
           {NAV.map((n) => (
             <NavLink

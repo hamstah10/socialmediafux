@@ -17,7 +17,7 @@ export default function Login() {
     setLoading(true);
     try {
       await login(email, password);
-      navigate("/dashboard");
+      navigate("/apps");
     } catch (err) {
       setError(err?.response?.data?.detail || "Login fehlgeschlagen");
     } finally {
@@ -39,20 +39,19 @@ export default function Login() {
         <div className="relative flex items-center gap-3">
           <Radar className="text-primary" size={32} strokeWidth={2} />
           <div>
-            <div className="fux-heading text-3xl leading-none">SocialFUX</div>
-            <div className="fux-label mt-1">social.tuningfux.de</div>
+            <div className="fux-heading text-3xl leading-none">MarketingFUX</div>
+            <div className="fux-label mt-1">tuningfux.de</div>
           </div>
         </div>
         <div className="relative">
-          <div className="fux-label mb-3">CONTENT OPS FOR</div>
+          <div className="fux-label mb-3">MARKETING OPS FOR</div>
           <h1 className="fux-heading text-5xl leading-[0.95]">
             Automotive.<br />Chiptuning.<br />
             <span className="text-primary">Performance.</span>
           </h1>
           <p className="text-muted-foreground mt-6 max-w-md text-sm leading-relaxed">
-            Mandantenfähige Social-Content-Plattform für Werkstätten, Tuner und
-            Tuningfiles-Anbieter. News scrapen, KI-Content generieren,
-            Creatives produzieren – markenkonform, rechtssicher, in Serie.
+            Ein Zugang, mehrere Tools: SocialFUX, VideoFUX und NewsletterFUX –
+            markenkonform, rechtssicher, in Serie.
           </p>
         </div>
         <div className="relative fux-label">v0.1.0 · secure jwt session</div>

@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 
 import Login from "@/pages/Login";
 import Approval from "@/pages/Approval";
+import Apps from "@/pages/Apps";
 import AppLayout from "@/layouts/AppLayout";
 import Dashboard from "@/pages/Dashboard";
 import Customers from "@/pages/Customers";
@@ -49,8 +50,9 @@ function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/approve/:token" element={<Approval />} />
+          <Route path="/apps" element={<Protected><Apps /></Protected>} />
           <Route element={<Protected><AppLayout /></Protected>}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Navigate to="/apps" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/:id" element={<CustomerDetail />} />
@@ -68,7 +70,7 @@ function App() {
             <Route path="/media-library" element={<MediaLibrary />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<Navigate to="/apps" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
