@@ -1,11 +1,12 @@
 """JWT authentication utilities."""
 import os
+import secrets
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import bcrypt
 import jwt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from db import get_user_by_id
@@ -15,6 +16,19 @@ JWT_ALGORITHM = os.environ.get("JWT_ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "1440"))
 
 bearer_scheme = HTTPBearer(auto_error=False)
+
+# Static key for machine-to-machine access (n8n, scripts, external tools).
+# Requests with header "X-API-Key: <SERVICE_API_KEY>" act as a service account
+# with admin rights, without needing a login/JWT.
+SERVICE_API_KEY = os.environ.get("SERVICE_API_KEY", "")
+
+SERVICE_USER = {
+    "id": "service",
+    "email": "service@socialfux.local",
+    "name": "Service Account",
+    "role": "admin",
+    "is_active": True,
+}
 
 
 def hash_password(password: str) -> str:
@@ -51,7 +65,10 @@ def decode_token(token: str) -> dict:
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
 ) -> dict:
+    if x_api_key and SERVICE_API_KEY and secrets.compare_digest(x_api_key, SERVICE_API_KEY):
+        return dict(SERVICE_USER)
     if not credentials:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
     payload = decode_token(credentials.credentials)
